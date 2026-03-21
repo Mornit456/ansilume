@@ -8,6 +8,9 @@ declare(strict_types=1);
 use yii\helpers\Html;
 
 $this->beginPage();
+
+// Required for Html::a() data-method="post" and data-confirm to work
+\yii\web\YiiAsset::register($this);
 ?>
 <!DOCTYPE html>
 <html lang="en">
