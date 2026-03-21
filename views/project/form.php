@@ -31,6 +31,13 @@ $this->title = $model->isNewRecord ? 'New Project' : 'Edit: ' . $model->name;
         <?= $form->field($model, 'scm_branch')->textInput(['maxlength' => 128]) ?>
     </div>
 
+    <div id="manual-fields" <?= $model->scm_type !== Project::SCM_TYPE_MANUAL ? 'style="display:none"' : '' ?>>
+        <?= $form->field($model, 'local_path')->textInput([
+            'maxlength'   => 512,
+            'placeholder' => '/opt/playbooks/myproject',
+        ])->hint('Absolute path on the host where playbooks and roles are located. The worker must have read access to this directory.') ?>
+    </div>
+
     <div class="mt-3">
         <?= Html::submitButton($model->isNewRecord ? 'Create Project' : 'Save Changes', ['class' => 'btn btn-primary']) ?>
         <?= Html::a('Cancel', $model->isNewRecord ? ['index'] : ['view', 'id' => $model->id], ['class' => 'btn btn-outline-secondary ms-2']) ?>
@@ -43,11 +50,13 @@ $this->title = $model->isNewRecord ? 'New Project' : 'Edit: ' . $model->name;
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var scmType  = document.getElementById('project-scm_type');
-    var gitFields = document.getElementById('git-fields');
+    var scmType     = document.getElementById('project-scm_type');
+    var gitFields    = document.getElementById('git-fields');
+    var manualFields = document.getElementById('manual-fields');
     if (scmType) {
         scmType.addEventListener('change', function () {
-            gitFields.style.display = this.value === 'git' ? '' : 'none';
+            gitFields.style.display    = this.value === 'git'    ? '' : 'none';
+            manualFields.style.display = this.value === 'manual' ? '' : 'none';
         });
     }
 });
