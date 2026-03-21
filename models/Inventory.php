@@ -45,8 +45,14 @@ class Inventory extends ActiveRecord
             [['description', 'content'], 'string'],
             [['inventory_type'], 'in', 'range' => [self::TYPE_STATIC, self::TYPE_DYNAMIC, self::TYPE_FILE]],
             [['source_path'], 'string', 'max' => 512],
-            [['content'], 'required', 'when' => fn($m) => $m->inventory_type === self::TYPE_STATIC],
-            [['source_path', 'project_id'], 'required', 'when' => fn($m) => $m->inventory_type === self::TYPE_FILE],
+            [['content'], 'required',
+                'when'       => fn($m) => $m->inventory_type === self::TYPE_STATIC,
+                'whenClient' => "function(attr, val) { return $('#inventory-type').val() === 'static'; }",
+            ],
+            [['source_path', 'project_id'], 'required',
+                'when'       => fn($m) => $m->inventory_type === self::TYPE_FILE,
+                'whenClient' => "function(attr, val) { return $('#inventory-type').val() === 'file'; }",
+            ],
             [['project_id', 'created_by'], 'integer'],
         ];
     }
