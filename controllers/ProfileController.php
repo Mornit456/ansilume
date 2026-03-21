@@ -61,7 +61,7 @@ class ProfileController extends BaseController
             throw new NotFoundHttpException('Token not found.');
         }
         $token->delete();
-        \Yii::$app->session->setFlash('success', "Token "{$token->name}" revoked.");
+        \Yii::$app->session->setFlash('success', "Token \"{$token->name}\" revoked.");
         return $this->redirect(['tokens']);
     }
 }

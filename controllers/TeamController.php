@@ -74,7 +74,7 @@ class TeamController extends BaseController
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log('team.created', 'team', $model->id, \Yii::$app->user->id, ['name' => $model->name]);
-                \Yii::$app->session->setFlash('success', "Team "{$model->name}" created.");
+                \Yii::$app->session->setFlash('success', "Team \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -86,7 +86,7 @@ class TeamController extends BaseController
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
             \Yii::$app->get('auditService')->log('team.updated', 'team', $model->id, \Yii::$app->user->id, ['name' => $model->name]);
-            \Yii::$app->session->setFlash('success', "Team "{$model->name}" updated.");
+            \Yii::$app->session->setFlash('success', "Team \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
         return $this->render('form', ['model' => $model]);
@@ -98,7 +98,7 @@ class TeamController extends BaseController
         $name  = $model->name;
         $model->delete();
         \Yii::$app->get('auditService')->log('team.deleted', 'team', $id, \Yii::$app->user->id, ['name' => $name]);
-        \Yii::$app->session->setFlash('success', "Team "{$name}" deleted.");
+        \Yii::$app->session->setFlash('success', "Team \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
 

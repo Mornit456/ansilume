@@ -66,7 +66,7 @@ class JobTemplateController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->session->setFlash('success', "Template "{$model->name}" created.");
+                \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -77,7 +77,7 @@ class JobTemplateController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->session->setFlash('success', "Template "{$model->name}" updated.");
+            \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
         return $this->render('form', $this->formData($model));
@@ -87,7 +87,7 @@ class JobTemplateController extends BaseController
     {
         $name = $this->findModel($id)->name;
         $this->findModel($id)->delete();
-        \Yii::$app->session->setFlash('success', "Template "{$name}" deleted.");
+        \Yii::$app->session->setFlash('success', "Template \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
 

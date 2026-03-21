@@ -73,7 +73,7 @@ class JobController extends BaseController
     {
         $job = $this->findModel($id);
         if (!$job->isCancelable()) {
-            \Yii::$app->session->setFlash('warning', "Job #{$job->id} cannot be canceled in status "{$job->status}".");
+            \Yii::$app->session->setFlash('warning', "Job #{$job->id} cannot be canceled in status \"{$job->status}\".");
             return $this->redirect(['view', 'id' => $id]);
         }
         $job->status      = Job::STATUS_CANCELED;

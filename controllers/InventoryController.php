@@ -51,7 +51,7 @@ class InventoryController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->session->setFlash('success', "Inventory "{$model->name}" created.");
+                \Yii::$app->session->setFlash('success', "Inventory \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -65,7 +65,7 @@ class InventoryController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->session->setFlash('success', "Inventory "{$model->name}" updated.");
+            \Yii::$app->session->setFlash('success', "Inventory \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
         return $this->render('form', [
@@ -79,7 +79,7 @@ class InventoryController extends BaseController
         $model = $this->findModel($id);
         $name  = $model->name;
         $model->delete();
-        \Yii::$app->session->setFlash('success', "Inventory "{$name}" deleted.");
+        \Yii::$app->session->setFlash('success', "Inventory \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
 

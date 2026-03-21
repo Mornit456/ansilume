@@ -49,7 +49,7 @@ class UserController extends BaseController
         $form = new UserForm();
 
         if ($form->load(\Yii::$app->request->post()) && $form->save()) {
-            \Yii::$app->session->setFlash('success', "User "{$form->username}" created.");
+            \Yii::$app->session->setFlash('success', "User \"{$form->username}\" created.");
             return $this->redirect(['view', 'id' => $form->getUser()->id]);
         }
 
@@ -65,7 +65,7 @@ class UserController extends BaseController
         $this->guardLastSuperadmin($user);
 
         if ($form->load(\Yii::$app->request->post()) && $form->save()) {
-            \Yii::$app->session->setFlash('success', "User "{$form->username}" updated.");
+            \Yii::$app->session->setFlash('success', "User \"{$form->username}\" updated.");
             return $this->redirect(['view', 'id' => $user->id]);
         }
 
@@ -81,7 +81,7 @@ class UserController extends BaseController
         $username = $user->username;
         $user->delete();
 
-        \Yii::$app->session->setFlash('success', "User "{$username}" deleted.");
+        \Yii::$app->session->setFlash('success', "User \"{$username}\" deleted.");
         return $this->redirect(['index']);
     }
 
@@ -96,7 +96,7 @@ class UserController extends BaseController
         $user->save(false);
 
         $label = $user->status === User::STATUS_ACTIVE ? 'activated' : 'deactivated';
-        \Yii::$app->session->setFlash('success', "User "{$user->username}" {$label}.");
+        \Yii::$app->session->setFlash('success', "User \"{$user->username}\" {$label}.");
         return $this->redirect(['view', 'id' => $id]);
     }
 

@@ -58,7 +58,7 @@ class ScheduleController extends BaseController
                     \Yii::$app->user->id,
                     ['name' => $model->name, 'cron' => $model->cron_expression]
                 );
-                \Yii::$app->session->setFlash('success', "Schedule "{$model->name}" created.");
+                \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -81,7 +81,7 @@ class ScheduleController extends BaseController
                     \Yii::$app->user->id,
                     ['name' => $model->name]
                 );
-                \Yii::$app->session->setFlash('success', "Schedule "{$model->name}" updated.");
+                \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" updated.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -102,7 +102,7 @@ class ScheduleController extends BaseController
             \Yii::$app->user->id,
             ['name' => $name]
         );
-        \Yii::$app->session->setFlash('success', "Schedule "{$name}" deleted.");
+        \Yii::$app->session->setFlash('success', "Schedule \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
 
@@ -115,7 +115,7 @@ class ScheduleController extends BaseController
         }
         $model->save(false, ['enabled', 'next_run_at', 'updated_at']);
         $state = $model->enabled ? 'enabled' : 'disabled';
-        \Yii::$app->session->setFlash('success', "Schedule "{$model->name}" {$state}.");
+        \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" {$state}.");
         return $this->redirect(['index']);
     }
 

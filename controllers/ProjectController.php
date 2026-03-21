@@ -68,7 +68,7 @@ class ProjectController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->session->setFlash('success', "Project "{$model->name}" created.");
+                \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -80,7 +80,7 @@ class ProjectController extends BaseController
         $model = $this->findModel($id);
         $this->requireAccess($model);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->session->setFlash('success', "Project "{$model->name}" updated.");
+            \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
         return $this->render('form', ['model' => $model]);
@@ -93,7 +93,7 @@ class ProjectController extends BaseController
         $name  = $model->name;
         $model->delete();
         \Yii::$app->get('auditService')->log('project.deleted', 'project', $id, null, ['name' => $name]);
-        \Yii::$app->session->setFlash('success', "Project "{$name}" deleted.");
+        \Yii::$app->session->setFlash('success', "Project \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
 
@@ -108,7 +108,7 @@ class ProjectController extends BaseController
         /** @var ProjectService $svc */
         $svc = \Yii::$app->get('projectService');
         $svc->queueSync($model);
-        \Yii::$app->session->setFlash('success', "Sync queued for "{$model->name}".");
+        \Yii::$app->session->setFlash('success', "Sync queued for \"{$model->name}\".");
         return $this->redirect(['view', 'id' => $id]);
     }
 
