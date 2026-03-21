@@ -66,7 +66,7 @@ $this->title = 'API Tokens';
                 <td class="text-end">
                     <?= Html::a('Revoke', ['/profile/delete-token', 'id' => $token->id], [
                         'class' => 'btn btn-sm btn-outline-danger',
-                        'data'  => ['method' => 'post', 'confirm' => "Revoke token "{$token->name}"?"],
+                        'data'  => ['method' => 'post', 'confirm' => 'Revoke token "' . $token->name . '"?'],
                     ]) ?>
                 </td>
             </tr>
