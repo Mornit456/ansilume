@@ -68,6 +68,7 @@ class ProjectController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
+                \Yii::$app->get('auditService')->log('project.created', 'project', $model->id, null, ['name' => $model->name]);
                 \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -80,6 +81,7 @@ class ProjectController extends BaseController
         $model = $this->findModel($id);
         $this->requireAccess($model);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
+            \Yii::$app->get('auditService')->log('project.updated', 'project', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }

@@ -66,6 +66,7 @@ class JobTemplateController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
+                \Yii::$app->get('auditService')->log('job-template.created', 'job-template', $model->id, null, ['name' => $model->name]);
                 \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -77,6 +78,7 @@ class JobTemplateController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
+            \Yii::$app->get('auditService')->log('job-template.updated', 'job-template', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
@@ -85,8 +87,10 @@ class JobTemplateController extends BaseController
 
     public function actionDelete(int $id): Response
     {
-        $name = $this->findModel($id)->name;
-        $this->findModel($id)->delete();
+        $model = $this->findModel($id);
+        $name  = $model->name;
+        $model->delete();
+        \Yii::$app->get('auditService')->log('job-template.deleted', 'job-template', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', "Template \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
