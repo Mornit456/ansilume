@@ -59,6 +59,15 @@ services:
     networks:
       - ansilume
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ansilume_mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_PORT:-8025}:8025"
+    networks:
+      - ansilume
+
   worker:
     build:
       context: .

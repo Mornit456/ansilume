@@ -54,14 +54,14 @@ $config = [
         'mailer' => [
             'class'            => 'yii\swiftmailer\SwiftMailer',
             'useFileTransport' => empty($_ENV['SMTP_HOST']),
-            'transport'        => empty($_ENV['SMTP_HOST']) ? [] : [
-                'class'       => 'Swift_SmtpTransport',
-                'host'        => $_ENV['SMTP_HOST'],
-                'port'        => (int)($_ENV['SMTP_PORT'] ?? 587),
-                'encryption'  => $_ENV['SMTP_ENCRYPTION'] ?? 'tls',
-                'username'    => $_ENV['SMTP_USER'] ?? null,
-                'password'    => $_ENV['SMTP_PASSWORD'] ?? null,
-            ],
+            'transport'        => empty($_ENV['SMTP_HOST']) ? [] : array_filter([
+                'class'      => 'Swift_SmtpTransport',
+                'host'       => $_ENV['SMTP_HOST'],
+                'port'       => (int)($_ENV['SMTP_PORT'] ?? 587),
+                'encryption' => $_ENV['SMTP_ENCRYPTION'] ?: null,
+                'username'   => $_ENV['SMTP_USER'] ?: null,
+                'password'   => $_ENV['SMTP_PASSWORD'] ?: null,
+            ]),
         ],
         'log' => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
