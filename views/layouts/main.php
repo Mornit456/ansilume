@@ -111,9 +111,8 @@ $active = fn(string $prefix): string => str_starts_with($route, $prefix) ? ' act
 ?>
 
 <div id="sidebar">
-    <a class="sidebar-brand" href="<?= Url::to(['/']) ?>">
-        <img src="/ansilume.png" alt="" height="26" style="object-fit:contain">
-        Ansilume
+    <a class="sidebar-brand justify-content-center" href="<?= Url::to(['/']) ?>" style="background:#fff; padding:1rem 1.2rem;">
+        <img src="/ansilume.png" alt="Ansilume" style="width:100%; max-width:160px; object-fit:contain;">
     </a>
 
     <?php if (!\Yii::$app->user->isGuest): ?>
