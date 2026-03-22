@@ -1,32 +1,27 @@
 <?php
 
-// Auto-login for dev — reads credentials from environment variables.
+// Auto-login for dev — injects POST credentials before Adminer processes them.
 // Never use this in production.
+
+if (empty($_POST['auth']) && empty($_COOKIE['adminer_sid'])) {
+    $_POST['auth'] = [
+        'driver'   => 'server',
+        'server'   => getenv('DB_HOST') ?: 'db',
+        'username' => getenv('DB_USER') ?: '',
+        'password' => getenv('DB_PASSWORD') ?: '',
+        'db'       => getenv('DB_NAME') ?: '',
+    ];
+}
 
 function adminer_object()
 {
     class AdminerAutoLogin extends Adminer
     {
-        public function credentials(): array
-        {
-            return [
-                $_ENV['DB_HOST']     ?? getenv('DB_HOST')     ?: 'db',
-                $_ENV['DB_USER']     ?? getenv('DB_USER')     ?: '',
-                $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '',
-            ];
-        }
-
-        public function database(): string
-        {
-            return $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: '';
-        }
-
         public function login($login, $password): bool
         {
             return true;
         }
     }
-
     return new AdminerAutoLogin();
 }
 
