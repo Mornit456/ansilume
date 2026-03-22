@@ -6,8 +6,10 @@ declare(strict_types=1);
 /** @var app\models\Job $job */
 /** @var app\models\JobLog[] $logs */
 /** @var app\models\JobTask[] $tasks */
+/** @var app\models\JobHostSummary[] $hostSummaries */
 
 use app\models\Job;
+use app\models\JobHostSummary;
 use app\models\JobLog;
 use app\models\JobTask;
 use yii\helpers\Html;
@@ -106,6 +108,45 @@ $isLive = !$job->isFinished();
     </div>
     <?php endif; ?>
 </div>
+
+<?php if (!empty($hostSummaries)): ?>
+<div class="card mb-3">
+    <div class="card-header">PLAY RECAP</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 small" style="font-family:monospace;">
+            <thead>
+                <tr>
+                    <th>Host</th>
+                    <th class="text-center text-success">ok</th>
+                    <th class="text-center text-warning">changed</th>
+                    <th class="text-center text-danger">failed</th>
+                    <th class="text-center text-secondary">skipped</th>
+                    <th class="text-center">unreachable</th>
+                    <th class="text-center text-info">rescued</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($hostSummaries as $hs): ?>
+                <?php
+                $rowClass = '';
+                if ($hs->unreachable > 0 || $hs->failed > 0) $rowClass = 'table-danger';
+                elseif ($hs->changed > 0) $rowClass = 'table-warning';
+                ?>
+                <tr class="<?= $rowClass ?>">
+                    <td><?= Html::encode($hs->host) ?></td>
+                    <td class="text-center"><?= $hs->ok ?></td>
+                    <td class="text-center"><?= $hs->changed ?></td>
+                    <td class="text-center"><?= $hs->failed ?></td>
+                    <td class="text-center"><?= $hs->skipped ?></td>
+                    <td class="text-center"><?= $hs->unreachable ?></td>
+                    <td class="text-center"><?= $hs->rescued ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php if (!empty($tasks)): ?>
 <?php

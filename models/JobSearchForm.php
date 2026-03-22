@@ -34,7 +34,7 @@ class JobSearchForm extends Model
         $this->validate();
 
         $query = Job::find()
-            ->with(['jobTemplate', 'launcher'])
+            ->with(['jobTemplate', 'launcher', 'hostSummaries'])
             ->orderBy(['id' => SORT_DESC]);
 
         if (!empty($this->status)) {

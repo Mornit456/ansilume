@@ -48,10 +48,11 @@ class JobController extends BaseController
 
     public function actionView(int $id): string
     {
-        $job  = $this->findModel($id);
-        $logs  = $job->getLogs()->all();
-        $tasks = JobTask::find()->where(['job_id' => $job->id])->orderBy('sequence')->all();
-        return $this->render('view', ['job' => $job, 'logs' => $logs, 'tasks' => $tasks]);
+        $job          = $this->findModel($id);
+        $logs         = $job->getLogs()->all();
+        $tasks        = JobTask::find()->where(['job_id' => $job->id])->orderBy('sequence')->all();
+        $hostSummaries = $job->getHostSummaries()->all();
+        return $this->render('view', ['job' => $job, 'logs' => $logs, 'tasks' => $tasks, 'hostSummaries' => $hostSummaries]);
     }
 
     public function actionLogPoll(int $id, int $after = -1): Response

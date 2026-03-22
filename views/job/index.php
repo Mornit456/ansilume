@@ -10,7 +10,7 @@ declare(strict_types=1);
 /** @var array $statusOptions */
 
 use app\models\Job;
-use yii\helpers\ArrayHelper;
+use app\models\JobHostSummary;
 use yii\helpers\Html;
 use yii\widgets\LinkPager;
 
@@ -87,6 +87,7 @@ $this->title = 'Jobs';
             <thead class="table-light">
                 <tr>
                     <th>#</th><th>Template</th><th>Status</th>
+                    <th>Hosts</th>
                     <th>Launched by</th><th>Queued</th><th>Started</th><th>Duration</th>
                 </tr>
             </thead>
@@ -99,6 +100,32 @@ $this->title = 'Jobs';
                         <span class="badge text-bg-<?= Job::statusCssClass($job->status) ?>">
                             <?= Html::encode(Job::statusLabel($job->status)) ?>
                         </span>
+                    </td>
+                    <td>
+                        <?php
+                        $recap = JobHostSummary::aggregate($job->hostSummaries);
+                        if ($recap['hosts'] > 0):
+                        ?>
+                        <span class="d-flex gap-1 flex-wrap" style="font-size:.7rem; line-height:1.6;">
+                            <?php if ($recap['ok'] > 0): ?>
+                                <span class="badge text-bg-success"><?= $recap['ok'] ?> ok</span>
+                            <?php endif; ?>
+                            <?php if ($recap['changed'] > 0): ?>
+                                <span class="badge text-bg-warning"><?= $recap['changed'] ?> changed</span>
+                            <?php endif; ?>
+                            <?php if ($recap['failed'] > 0): ?>
+                                <span class="badge text-bg-danger"><?= $recap['failed'] ?> failed</span>
+                            <?php endif; ?>
+                            <?php if ($recap['unreachable'] > 0): ?>
+                                <span class="badge text-bg-dark"><?= $recap['unreachable'] ?> unreach</span>
+                            <?php endif; ?>
+                            <?php if ($recap['skipped'] > 0): ?>
+                                <span class="badge text-bg-secondary"><?= $recap['skipped'] ?> skip</span>
+                            <?php endif; ?>
+                        </span>
+                        <?php else: ?>
+                            <span class="text-muted">—</span>
+                        <?php endif; ?>
                     </td>
                     <td><?= Html::encode($job->launcher->username ?? '—') ?></td>
                     <td><?= $job->queued_at   ? date('Y-m-d H:i', $job->queued_at)   : '—' ?></td>

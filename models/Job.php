@@ -28,8 +28,9 @@ use yii\db\ActiveRecord;
  *
  * @property JobTemplate $jobTemplate
  * @property User        $launcher
- * @property Runner|null $runner
- * @property JobLog[]    $logs
+ * @property Runner|null          $runner
+ * @property JobLog[]             $logs
+ * @property JobHostSummary[]     $hostSummaries
  */
 class Job extends ActiveRecord
 {
@@ -146,6 +147,11 @@ class Job extends ActiveRecord
     public function getRunner(): \yii\db\ActiveQuery
     {
         return $this->hasOne(Runner::class, ['id' => 'runner_id']);
+    }
+
+    public function getHostSummaries(): \yii\db\ActiveQuery
+    {
+        return $this->hasMany(JobHostSummary::class, ['job_id' => 'id'])->orderBy('host');
     }
 
     public function getLogs(): \yii\db\ActiveQuery
