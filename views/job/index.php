@@ -97,9 +97,11 @@ $this->title = 'Jobs';
                     <td><?= Html::a('#' . $job->id, ['view', 'id' => $job->id]) ?></td>
                     <td><?= Html::encode($job->jobTemplate->name ?? '—') ?></td>
                     <td>
-                        <span class="badge text-bg-<?= Job::statusCssClass($job->status) ?>">
-                            <?= Html::encode(Job::statusLabel($job->status)) ?>
-                        </span>
+                        <?= Html::a(
+                            Html::encode(Job::statusLabel($job->status)),
+                            ['view', 'id' => $job->id],
+                            ['class' => 'badge text-bg-' . Job::statusCssClass($job->status) . ' text-decoration-none']
+                        ) ?>
                     </td>
                     <?php $recap = JobHostSummary::aggregate($job->hostSummaries); ?>
                     <td class="text-center">
