@@ -70,7 +70,14 @@ class ProjectController extends BaseController
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log('project.created', 'project', $model->id, null, ['name' => $model->name]);
-                \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" created.");
+                if ($model->scm_type === Project::SCM_TYPE_GIT && $model->scm_url) {
+                    /** @var ProjectService $svc */
+                    $svc = \Yii::$app->get('projectService');
+                    $svc->queueSync($model);
+                    \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" created. Sync queued.");
+                } else {
+                    \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" created.");
+                }
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         }
@@ -83,7 +90,14 @@ class ProjectController extends BaseController
         $this->requireAccess($model);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
             \Yii::$app->get('auditService')->log('project.updated', 'project', $model->id, null, ['name' => $model->name]);
-            \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" updated.");
+            if ($model->scm_type === Project::SCM_TYPE_GIT && $model->scm_url) {
+                /** @var ProjectService $svc */
+                $svc = \Yii::$app->get('projectService');
+                $svc->queueSync($model);
+                \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" updated. Sync queued.");
+            } else {
+                \Yii::$app->session->setFlash('success', "Project \"{$model->name}\" updated.");
+            }
             return $this->redirect(['view', 'id' => $model->id]);
         }
         return $this->render('form', ['model' => $model, 'sshCredentials' => $this->sshCredentials()]);
