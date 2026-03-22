@@ -130,15 +130,15 @@ $active = fn(string $prefix): string =>
 
     <span class="nav-section">Automation</span>
     <nav class="nav flex-column">
-        <a class="nav-link<?= $active('project') ?>"      href="<?= Url::to(['/project/index']) ?>">Projects</a>
-        <a class="nav-link<?= $active('inventory') ?>"    href="<?= Url::to(['/inventory/index']) ?>">Inventories</a>
-        <a class="nav-link<?= $active('credential') ?>"   href="<?= Url::to(['/credential/index']) ?>">Credentials</a>
-        <a class="nav-link<?= $active('job-template') ?>" href="<?= Url::to(['/job-template/index']) ?>">Templates</a>
+        <a class="nav-link<?= $active('project') // xss-ok: hardcoded CSS class ?>"      href="<?= Url::to(['/project/index']) ?>">Projects</a>
+        <a class="nav-link<?= $active('inventory') // xss-ok: hardcoded CSS class ?>"    href="<?= Url::to(['/inventory/index']) ?>">Inventories</a>
+        <a class="nav-link<?= $active('credential') // xss-ok: hardcoded CSS class ?>"   href="<?= Url::to(['/credential/index']) ?>">Credentials</a>
+        <a class="nav-link<?= $active('job-template') // xss-ok: hardcoded CSS class ?>" href="<?= Url::to(['/job-template/index']) ?>">Templates</a>
     </nav>
 
     <span class="nav-section">Operations</span>
     <nav class="nav flex-column">
-        <a class="nav-link<?= $active('job') ?>"          href="<?= Url::to(['/job/index']) ?>">Jobs</a>
+        <a class="nav-link<?= $active('job') // xss-ok: hardcoded CSS class ?>"          href="<?= Url::to(['/job/index']) ?>">Jobs</a>
         <?php if (\Yii::$app->user->can('job.launch')): ?>
         <a class="nav-link<?= $active('schedule') ?>"     href="<?= Url::to(['/schedule/index']) ?>">Schedules</a>
         <?php endif; ?>

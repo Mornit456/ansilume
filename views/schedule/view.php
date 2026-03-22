@@ -47,7 +47,7 @@ $this->title = Html::encode($model->name);
 
                     <dt class="col-sm-4">Template</dt>
                     <dd class="col-sm-8">
-                        <?= $model->jobTemplate
+                        <?= $model->jobTemplate // xss-ok: Html::a encodes name; fallback is hardcoded HTML
                             ? Html::a(Html::encode($model->jobTemplate->name), ['/job-template/view', 'id' => $model->job_template_id])
                             : '<span class="text-danger">Missing</span>' ?>
                     </dd>
