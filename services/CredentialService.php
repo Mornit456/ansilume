@@ -53,6 +53,117 @@ class CredentialService extends Component
         return array_map(fn($v) => '***REDACTED***', $secrets);
     }
 
+    /**
+     * Generate a new Ed25519 SSH key pair.
+     * Returns ['private_key' => '...', 'public_key' => '...'].
+     *
+     * @throws \RuntimeException on failure.
+     */
+    public function generateSshKeyPair(): array
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'ansilume_gen_');
+        @unlink($tmp); // ssh-keygen creates its own file
+
+        $cmd = ['ssh-keygen', '-t', 'ed25519', '-N', '', '-C', 'ansilume-generated', '-f', $tmp];
+        $this->runCommand($cmd);
+
+        try {
+            if (!file_exists($tmp) || !file_exists($tmp . '.pub')) {
+                throw new \RuntimeException('ssh-keygen did not produce expected key files.');
+            }
+            return [
+                'private_key' => file_get_contents($tmp),
+                'public_key'  => trim(file_get_contents($tmp . '.pub')),
+            ];
+        } finally {
+            @unlink($tmp);
+            @unlink($tmp . '.pub');
+        }
+    }
+
+    /**
+     * Analyse a private key and extract its public key and algorithm metadata.
+     * Returns ['public_key', 'algorithm', 'bits', 'secure'].
+     * On any failure returns an array with empty/null values rather than throwing.
+     */
+    public function analyzePrivateKey(string $privateKey): array
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'ansilume_key_');
+        file_put_contents($tmp, $privateKey);
+        chmod($tmp, 0600);
+
+        try {
+            // Extract public key
+            $pubOut  = [];
+            $pubKey  = '';
+            $this->runCommand(['ssh-keygen', '-y', '-f', $tmp], $pubOut);
+            $pubKey = trim(implode('', $pubOut));
+
+            // Get fingerprint/type line: "256 SHA256:xxx label (ED25519)"
+            $infoOut = [];
+            $this->runCommand(['ssh-keygen', '-l', '-f', $tmp], $infoOut);
+            $info = trim(implode('', $infoOut));
+
+            $bits      = 0;
+            $algorithm = 'unknown';
+            if (preg_match('/^(\d+)\s+\S+\s+.*\((\S+)\)\s*$/', $info, $m)) {
+                $bits      = (int) $m[1];
+                $algorithm = strtolower($m[2]);
+            }
+
+            $secure = $this->isKeySecure($algorithm, $bits);
+
+            return [
+                'public_key'    => $pubKey,
+                'algorithm'     => $algorithm,
+                'bits'          => $bits,
+                'key_secure'    => $secure,
+            ];
+        } catch (\RuntimeException) {
+            return ['public_key' => '', 'algorithm' => 'unknown', 'bits' => 0, 'key_secure' => null];
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    /**
+     * Determine whether a key algorithm+size combination is considered secure.
+     * null = unknown, true = secure, false = insecure/weak.
+     */
+    public function isKeySecure(string $algorithm, int $bits): ?bool
+    {
+        return match ($algorithm) {
+            'ed25519'  => true,
+            'ed448'    => true,
+            'ecdsa'    => $bits >= 384,   // nistp256 = 256 bits → false, nistp384/521 → true
+            'rsa'      => $bits >= 4096,
+            'dsa'      => false,
+            default    => null,
+        };
+    }
+
+    /**
+     * Run a command as a subprocess, returning stdout lines.
+     * @throws \RuntimeException on non-zero exit.
+     */
+    private function runCommand(array $cmd, array &$output = []): void
+    {
+        $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (!is_resource($process)) {
+            throw new \RuntimeException('proc_open failed for: ' . implode(' ', $cmd));
+        }
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $exit = proc_close($process);
+        $output = $stdout !== false ? explode("\n", $stdout) : [];
+        if ($exit !== 0) {
+            throw new \RuntimeException('Command failed (exit ' . $exit . '): ' . implode(' ', $cmd));
+        }
+    }
+
     private function encrypt(string $plaintext): string
     {
         $key    = $this->deriveKey();

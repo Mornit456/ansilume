@@ -160,6 +160,8 @@ $config = [
                 'runner/regenerate-token/<id:\d+>' => 'runner/regenerate-token',
                 // Dashboard chart data
                 'site/chart-data' => 'site/chart-data',
+                // Credential helpers
+                'credential/generate-ssh-key' => 'credential/generate-ssh-key',
                 // Health check
                 'health' => 'health/index',
                 // Inbound trigger

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /** @var yii\web\View $this */
 /** @var app\models\Credential $model */
+/** @var array|null $sshInfo  SSH key metadata or null for non-SSH credentials */
 
 use app\models\Credential;
 use yii\helpers\Html;
@@ -32,7 +33,7 @@ $this->title = $model->name;
     </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
     <div class="col-md-5">
         <div class="card">
             <div class="card-header">Details</div>
@@ -40,10 +41,27 @@ $this->title = $model->name;
                 <dl class="row mb-0">
                     <dt class="col-5">Type</dt>
                     <dd class="col-7"><span class="badge text-bg-secondary"><?= Html::encode(Credential::typeLabel($model->credential_type)) ?></span></dd>
+                    <?php if ($model->credential_type === Credential::TYPE_SSH_KEY && $sshInfo): ?>
+                        <dt class="col-5">Algorithm</dt>
+                        <dd class="col-7">
+                            <?php if ($sshInfo['algorithm'] && $sshInfo['algorithm'] !== 'unknown'): ?>
+                                <code><?= Html::encode(strtoupper($sshInfo['algorithm'])) ?><?= $sshInfo['bits'] ? '-' . $sshInfo['bits'] : '' ?></code>
+                                <?php if ($sshInfo['key_secure'] === false): ?>
+                                    <span class="badge text-bg-danger ms-1">Insecure</span>
+                                <?php elseif ($sshInfo['key_secure'] === null): ?>
+                                    <span class="badge text-bg-secondary ms-1">Unknown</span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
+                            <?php endif; ?>
+                        </dd>
+                    <?php endif; ?>
+                    <?php if ($model->username): ?>
                     <dt class="col-5">Username</dt>
-                    <dd class="col-7"><?= $model->username ? Html::encode($model->username) : '<span class="text-muted">—</span>' ?></dd>
-                    <dt class="col-5">Secret</dt>
-                    <dd class="col-7"><span class="text-muted">***REDACTED***</span></dd>
+                    <dd class="col-7"><?= Html::encode($model->username) ?></dd>
+                    <?php endif; ?>
+                    <dt class="col-5">Private Key</dt>
+                    <dd class="col-7"><span class="text-muted small">***REDACTED***</span></dd>
                     <dt class="col-5">Created by</dt>
                     <dd class="col-7"><?= Html::encode($model->creator->username ?? '—') ?></dd>
                     <dt class="col-5">Created</dt>
@@ -60,4 +78,23 @@ $this->title = $model->name;
         </div>
         <?php endif; ?>
     </div>
+
+    <?php if ($model->credential_type === Credential::TYPE_SSH_KEY && $sshInfo && $sshInfo['public_key']): ?>
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Public Key</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="navigator.clipboard.writeText(document.getElementById('pubkey-display').value)">Copy</button>
+            </div>
+            <div class="card-body p-0">
+                <textarea id="pubkey-display" class="form-control font-monospace border-0 rounded-0"
+                          rows="3" readonly style="background:transparent;resize:none;"><?= Html::encode($sshInfo['public_key']) ?></textarea>
+            </div>
+            <div class="card-footer text-muted small">
+                Add this public key as a Deploy Key on GitHub / GitLab, or to <code>~/.ssh/authorized_keys</code> on the target host.
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>

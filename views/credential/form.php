@@ -35,9 +35,24 @@ $isEdit = !$model->isNewRecord;
 
     <div id="secret-ssh" class="secret-block" style="display:none">
         <div class="mb-3">
-            <label class="form-label">Private Key <?= $isEdit ? '<span class="text-muted small">(leave blank to keep existing)</span>' : '' ?></label>
-            <textarea name="secrets[private_key]" class="form-control font-monospace" rows="10"
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0">
+                    Private Key
+                    <?= $isEdit ? '<span class="text-muted small">(leave blank to keep existing)</span>' : '' ?>
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btn-generate-key">
+                    Generate Ed25519 Key Pair
+                </button>
+            </div>
+            <textarea name="secrets[private_key]" id="ssh-private-key" class="form-control font-monospace" rows="10"
                       placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autocomplete="off"></textarea>
+        </div>
+        <div class="mb-3" id="ssh-pubkey-block" style="display:none">
+            <label class="form-label">Public Key <span class="text-muted small">(deploy this to the server / GitHub / GitLab)</span></label>
+            <div class="input-group">
+                <textarea id="ssh-public-key-display" class="form-control font-monospace" rows="2" readonly></textarea>
+                <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('ssh-public-key-display').value)" title="Copy to clipboard">Copy</button>
+            </div>
         </div>
     </div>
 
@@ -89,5 +104,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     typeSelect.addEventListener('change', update);
     update();
+
+    // Generate SSH key pair
+    var btnGenerate  = document.getElementById('btn-generate-key');
+    var privateKeyEl = document.getElementById('ssh-private-key');
+    var pubKeyBlock  = document.getElementById('ssh-pubkey-block');
+    var pubKeyEl     = document.getElementById('ssh-public-key-display');
+    var csrfToken    = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    if (btnGenerate) {
+        btnGenerate.addEventListener('click', function () {
+            btnGenerate.disabled = true;
+            btnGenerate.textContent = 'Generating…';
+
+            fetch(<?= json_encode(\yii\helpers\Url::to(['/credential/generate-ssh-key'])) ?>, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: '{}',
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok) {
+                    privateKeyEl.value = data.private_key;
+                    pubKeyEl.value     = data.public_key;
+                    pubKeyBlock.style.display = '';
+                } else {
+                    alert('Key generation failed: ' + (data.error || 'unknown error'));
+                }
+            })
+            .catch(function (e) { alert('Request failed: ' + e); })
+            .finally(function () {
+                btnGenerate.disabled = false;
+                btnGenerate.textContent = 'Generate Ed25519 Key Pair';
+            });
+        });
+    }
 });
 </script>

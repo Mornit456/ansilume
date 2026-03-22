@@ -16,16 +16,16 @@ class CredentialController extends BaseController
     protected function accessRules(): array
     {
         return [
-            ['actions' => ['index', 'view'],   'allow' => true, 'roles' => ['credential.view']],
-            ['actions' => ['create'],           'allow' => true, 'roles' => ['credential.create']],
-            ['actions' => ['update'],           'allow' => true, 'roles' => ['credential.update']],
-            ['actions' => ['delete'],           'allow' => true, 'roles' => ['credential.delete']],
+            ['actions' => ['index', 'view'],              'allow' => true, 'roles' => ['credential.view']],
+            ['actions' => ['create', 'generate-ssh-key'], 'allow' => true, 'roles' => ['credential.create']],
+            ['actions' => ['update'],                     'allow' => true, 'roles' => ['credential.update']],
+            ['actions' => ['delete'],                     'allow' => true, 'roles' => ['credential.delete']],
         ];
     }
 
     protected function verbRules(): array
     {
-        return ['delete' => ['POST']];
+        return ['delete' => ['POST'], 'generate-ssh-key' => ['POST']];
     }
 
     public function actionIndex(): string
@@ -39,7 +39,35 @@ class CredentialController extends BaseController
 
     public function actionView(int $id): string
     {
-        return $this->render('view', ['model' => $this->findModel($id)]);
+        $model   = $this->findModel($id);
+        $sshInfo = null;
+        if ($model->credential_type === Credential::TYPE_SSH_KEY && !empty($model->secret_data)) {
+            /** @var CredentialService $cs */
+            $cs      = \Yii::$app->get('credentialService');
+            $secrets = $cs->getSecrets($model);
+
+            $publicKey  = $secrets['public_key']  ?? '';
+            $algorithm  = $secrets['algorithm']   ?? '';
+            $bits       = (int) ($secrets['bits'] ?? 0);
+            $keySecure  = $secrets['key_secure']  ?? null;
+
+            // Derive public key on-the-fly if not yet stored (legacy credentials)
+            if ($publicKey === '' && !empty($secrets['private_key'])) {
+                $analysis  = $cs->analyzePrivateKey($secrets['private_key']);
+                $publicKey = $analysis['public_key'];
+                $algorithm = $analysis['algorithm'];
+                $bits      = $analysis['bits'];
+                $keySecure = $analysis['key_secure'];
+            }
+
+            $sshInfo = [
+                'public_key'  => $publicKey,
+                'algorithm'   => $algorithm,
+                'bits'        => $bits,
+                'key_secure'  => $keySecure,
+            ];
+        }
+        return $this->render('view', ['model' => $model, 'sshInfo' => $sshInfo]);
     }
 
     public function actionCreate(): Response|string
@@ -48,9 +76,9 @@ class CredentialController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->validate()) {
-                $secrets = $this->extractSecrets($model->credential_type);
                 /** @var CredentialService $cs */
-                $cs = \Yii::$app->get('credentialService');
+                $cs      = \Yii::$app->get('credentialService');
+                $secrets = $this->extractSecrets($model->credential_type, $cs);
                 if ($cs->storeSecrets($model, $secrets)) {
                     \Yii::$app->get('auditService')->log(
                         AuditService::ACTION_CREDENTIAL_CREATED,
@@ -70,9 +98,9 @@ class CredentialController extends BaseController
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post())) {
             if ($model->validate()) {
-                $secrets = $this->extractSecrets($model->credential_type);
                 /** @var CredentialService $cs */
-                $cs = \Yii::$app->get('credentialService');
+                $cs      = \Yii::$app->get('credentialService');
+                $secrets = $this->extractSecrets($model->credential_type, $cs);
                 if (!empty(array_filter($secrets))) {
                     $cs->storeSecrets($model, $secrets);
                 } else {
@@ -89,6 +117,24 @@ class CredentialController extends BaseController
         return $this->render('form', ['model' => $model, 'secrets' => []]);
     }
 
+    /**
+     * AJAX: generate a fresh Ed25519 key pair and return it as JSON.
+     * Used by the credential form's "Generate Key Pair" button.
+     */
+    public function actionGenerateSshKey(): Response
+    {
+        \Yii::$app->response->format = Response::FORMAT_JSON;
+        try {
+            /** @var CredentialService $cs */
+            $cs   = \Yii::$app->get('credentialService');
+            $pair = $cs->generateSshKeyPair();
+            return $this->asJson(['ok' => true, 'private_key' => $pair['private_key'], 'public_key' => $pair['public_key']]);
+        } catch (\RuntimeException $e) {
+            \Yii::$app->response->statusCode = 500;
+            return $this->asJson(['ok' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
     public function actionDelete(int $id): Response
     {
         $model = $this->findModel($id);
@@ -101,16 +147,30 @@ class CredentialController extends BaseController
         return $this->redirect(['index']);
     }
 
-    private function extractSecrets(string $type): array
+    private function extractSecrets(string $type, CredentialService $cs): array
     {
         $post = \Yii::$app->request->post('secrets', []);
-        return match ($type) {
-            Credential::TYPE_SSH_KEY           => ['private_key'    => $post['private_key'] ?? ''],
-            Credential::TYPE_USERNAME_PASSWORD => ['password'       => $post['password'] ?? ''],
-            Credential::TYPE_VAULT             => ['vault_password' => $post['vault_password'] ?? ''],
-            Credential::TYPE_TOKEN             => ['token'          => $post['token'] ?? ''],
-            default                            => [],
-        };
+        if ($type !== Credential::TYPE_SSH_KEY) {
+            return match ($type) {
+                Credential::TYPE_USERNAME_PASSWORD => ['password'       => $post['password'] ?? ''],
+                Credential::TYPE_VAULT             => ['vault_password' => $post['vault_password'] ?? ''],
+                Credential::TYPE_TOKEN             => ['token'          => $post['token'] ?? ''],
+                default                            => [],
+            };
+        }
+
+        $privateKey = $post['private_key'] ?? '';
+        $secrets    = ['private_key' => $privateKey];
+
+        if ($privateKey !== '') {
+            $analysis = $cs->analyzePrivateKey($privateKey);
+            $secrets['public_key']  = $analysis['public_key'];
+            $secrets['algorithm']   = $analysis['algorithm'];
+            $secrets['bits']        = $analysis['bits'];
+            $secrets['key_secure']  = $analysis['key_secure'];
+        }
+
+        return $secrets;
     }
 
     private function findModel(int $id): Credential
