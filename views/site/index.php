@@ -155,7 +155,7 @@ $this->title = 'Dashboard';
     <div class="card-body p-0">
         <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
-                <tr><th>#</th><th>Template</th><th>Launched by</th><th>Started</th><th>Running for</th></tr>
+                <tr><th>#</th><th>Template</th><th>Launched by</th><th>Worker</th><th>Started</th><th>Running for</th></tr>
             </thead>
             <tbody>
             <?php foreach ($runningJobs as $job): ?>
@@ -163,6 +163,7 @@ $this->title = 'Dashboard';
                     <td><?= Html::a('#' . $job->id, Url::to(['/job/view', 'id' => $job->id])) ?></td>
                     <td><?= Html::encode($job->jobTemplate->name ?? '—') ?></td>
                     <td><?= Html::encode($job->launcher->username ?? '—') ?></td>
+                    <td><code class="small"><?= $job->worker_id ? Html::encode($job->worker_id) : '—' ?></code></td>
                     <td><?= $job->started_at ? date('H:i:s', $job->started_at) : '—' ?></td>
                     <td><?= $job->started_at ? gmdate('H:i:s', time() - $job->started_at) : '—' ?></td>
                 </tr>
@@ -185,7 +186,7 @@ $this->title = 'Dashboard';
         <?php else: ?>
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
-                    <tr><th>#</th><th>Template</th><th>Status</th><th>Launched by</th><th>Started</th><th>Duration</th></tr>
+                    <tr><th>#</th><th>Template</th><th>Status</th><th>Launched by</th><th>Worker</th><th>Started</th><th>Duration</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($recentJobs as $job): ?>
@@ -198,6 +199,7 @@ $this->title = 'Dashboard';
                             </span>
                         </td>
                         <td><?= Html::encode($job->launcher->username ?? '—') ?></td>
+                        <td><code class="small"><?= $job->worker_id ? Html::encode($job->worker_id) : '—' ?></code></td>
                         <td class="text-nowrap"><?= $job->started_at ? date('Y-m-d H:i', $job->started_at) : '—' ?></td>
                         <td class="text-nowrap">
                             <?php
