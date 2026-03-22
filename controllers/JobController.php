@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\models\Job;
+use app\models\JobLog;
 use app\models\JobSearchForm;
 use app\models\JobTask;
 use app\models\JobTemplate;
@@ -59,6 +60,7 @@ class JobController extends BaseController
     {
         \Yii::$app->response->format = Response::FORMAT_JSON;
         $job    = $this->findModel($id);
+        /** @var JobLog[] $chunks */
         $chunks = $job->getLogs()->andWhere(['>', 'sequence', $after])->all();
 
         return $this->asJson([

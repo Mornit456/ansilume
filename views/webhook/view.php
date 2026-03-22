@@ -6,6 +6,7 @@ declare(strict_types=1);
 /** @var app\models\Webhook $model */
 
 use yii\helpers\Html;
+use yii\helpers\Url;
 
 $this->title = Html::encode($model->name);
 ?>
@@ -14,11 +15,11 @@ $this->title = Html::encode($model->name);
     <div>
         <?php if (\Yii::$app->user->can('admin')): ?>
             <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-outline-secondary']) ?>
-            <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-                'class' => 'btn btn-outline-danger ms-1',
-                'data-method' => 'post',
-                'data-confirm' => 'Delete this webhook?',
-            ]) ?>
+            <form method="post" action="<?= Url::to(['delete', 'id' => $model->id]) ?>" style="display:inline"
+                  onsubmit="return confirm('Delete this webhook?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+            </form>
         <?php endif; ?>
         <?= Html::a('Back', ['index'], ['class' => 'btn btn-outline-secondary ms-1']) ?>
     </div>

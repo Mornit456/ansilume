@@ -6,6 +6,7 @@ namespace app\tests\unit\models;
 
 use app\models\Schedule;
 use PHPUnit\Framework\TestCase;
+use yii\db\BaseActiveRecord;
 
 /**
  * Tests for Schedule model validation and next-run computation.
@@ -129,9 +130,31 @@ class ScheduleTest extends TestCase
 
     private function makeSchedule(string $cron = '0 2 * * *'): Schedule
     {
-        $schedule = new Schedule();
-        $schedule->cron_expression = $cron;
-        $schedule->timezone        = 'UTC';
-        return $schedule;
+        $s = $this->getMockBuilder(Schedule::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['attributes', 'save'])
+            ->getMock();
+        $s->method('attributes')->willReturn(
+            ['id', 'name', 'job_template_id', 'cron_expression', 'timezone',
+             'extra_vars', 'enabled', 'last_run_at', 'next_run_at', 'created_by', 'created_at', 'updated_at']
+        );
+        $s->method('save')->willReturn(true);
+        $ref = new \ReflectionProperty(BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($s, [
+            'id'              => null,
+            'name'            => 'test',
+            'job_template_id' => 1,
+            'cron_expression' => $cron,
+            'timezone'        => 'UTC',
+            'extra_vars'      => null,
+            'enabled'         => true,
+            'last_run_at'     => null,
+            'next_run_at'     => null,
+            'created_by'      => 1,
+            'created_at'      => null,
+            'updated_at'      => null,
+        ]);
+        return $s;
     }
 }

@@ -1,0 +1,21 @@
+parameters:
+    level: 5
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    paths:
+        - controllers
+        - models
+        - services
+        - commands
+        - jobs
+        - components
+    excludePaths:
+        - vendor
+        - runtime
+        - web/assets
+    # Yii2's PHPDoc for findOne() etc. says non-nullable but callers must check for null.
+    # Disable strict PHPDoc-based narrowing to avoid false "always false" warnings.
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Yii2 queue extension adds $queue dynamically — not in the base Application class
+        - '#Access to an undefined property yii\\(web|console)\\Application.*::\$queue#'

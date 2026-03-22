@@ -111,7 +111,7 @@ class WorkerHeartbeat
         return static::connectRedisStatic();
     }
 
-    private static function connectRedisStatic(): \Redis
+    protected static function connectRedisStatic(): \Redis
     {
         $r = new \Redis();
         $r->connect(

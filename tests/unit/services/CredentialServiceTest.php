@@ -76,12 +76,16 @@ class CredentialServiceTest extends TestCase
 
     private function makeCredential(): Credential
     {
-        // Partial stub — only secret_data field is used by the service
+        // Partial stub — only secret_data field is used by the service.
+        // Pre-populate _attributes so __get/__set work without a DB connection.
         $stub = $this->getMockBuilder(Credential::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['save'])
             ->getMock();
         $stub->method('save')->willReturn(true);
+        $ref = new \ReflectionProperty(\yii\db\BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($stub, ['secret_data' => '']);
         return $stub;
     }
 }

@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Ansilume test suite
+# Runs inside the Docker app container (PHP 8.2) for correctness.
+# Usage: ./tests.sh [--fast]   (--fast skips PHPStan + integration tests)
+# =============================================================================
+
+set -euo pipefail
+
+FAST=0
+for arg in "$@"; do [[ "$arg" == "--fast" ]] && FAST=1; done
+
+PASS=0
+FAIL=0
+SKIP=0
+ERRORS=()
+
+# Colours
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+
+section() { echo -e "\n${CYAN}${BOLD}══ $1 ══${NC}"; }
+ok()      { echo -e "  ${GREEN}✔${NC}  $1"; PASS=$((PASS+1)); }
+fail()    { echo -e "  ${RED}✘${NC}  $1"; FAIL=$((FAIL+1)); ERRORS+=("$1"); }
+skip()    { echo -e "  ${YELLOW}–${NC}  $1 (skipped)"; SKIP=$((SKIP+1)); }
+
+# Wrapper: run a command inside the Docker app container.
+# Falls back to running locally if Docker is not available.
+DOCKER_AVAILABLE=0
+if docker compose ps app --quiet 2>/dev/null | grep -q .; then
+    DOCKER_AVAILABLE=1
+fi
+
+dc() {
+    if [[ $DOCKER_AVAILABLE -eq 1 ]]; then
+        docker compose exec -T app "$@"
+    else
+        "$@"
+    fi
+}
+
+# =============================================================================
+# 1. PHP syntax check (php -l) for every .php file outside vendor/
+# =============================================================================
+section "PHP syntax check"
+
+SYNTAX_ERRORS=0
+while IFS= read -r -d '' file; do
+    output=$(dc php -l "$file" 2>&1)
+    if [[ $? -ne 0 ]]; then
+        echo -e "  ${RED}✘${NC}  $file"
+        echo "     $output"
+        SYNTAX_ERRORS=$((SYNTAX_ERRORS+1))
+    fi
+done < <(find . \
+    -not -path "./vendor/*" \
+    -not -path "./.composer/*" \
+    -not -path "./runtime/*" \
+    -not -path "./@runtime/*" \
+    -name "*.php" -print0)
+
+if [[ $SYNTAX_ERRORS -eq 0 ]]; then
+    ok "All PHP files pass syntax check"
+else
+    fail "$SYNTAX_ERRORS PHP file(s) have syntax errors"
+fi
+
+# =============================================================================
+# 2. strict_types declaration
+# =============================================================================
+section "strict_types declarations"
+
+MISSING_STRICT=()
+while IFS= read -r -d '' file; do
+    if ! grep -q "declare(strict_types=1)" "$file" 2>/dev/null; then
+        MISSING_STRICT+=("$file")
+    fi
+done < <(find controllers models services commands jobs components \
+    -name "*.php" -print0 2>/dev/null)
+
+if [[ ${#MISSING_STRICT[@]} -eq 0 ]]; then
+    ok "All source PHP files declare strict_types=1"
+else
+    fail "${#MISSING_STRICT[@]} file(s) missing strict_types=1"
+    for f in "${MISSING_STRICT[@]}"; do echo "     $f"; done
+fi
+
+# =============================================================================
+# 3. Security: detect dangerous patterns
+# =============================================================================
+section "Security checks"
+
+check_pattern() {
+    local label="$1"; shift
+    local matches
+    matches=$(grep -rn --include="*.php" \
+        --exclude-dir=vendor --exclude-dir=.composer \
+        "$@" . 2>/dev/null || true)
+    if [[ -n "$matches" ]]; then
+        fail "$label"
+        echo "$matches" | head -20 | sed 's/^/     /'
+    else
+        ok "$label"
+    fi
+}
+
+check_pattern "No eval() calls"                  -P '\beval\s*\('
+check_pattern "No shell_exec() calls"            -P '\bshell_exec\s*\('
+check_pattern "No exec() calls outside services" -P '\bexec\s*\(' \
+    --exclude-dir=services --exclude-dir=commands
+check_pattern "No system() calls"                -P '\bsystem\s*\('
+check_pattern "No passthru() calls"              -P '\bpassthru\s*\('
+check_pattern "No hardcoded passwords in code"   -P "password\s*=\s*['\"][^'\"]{4,}['\"]" \
+    --exclude="*.example*" --exclude=".env*"
+check_pattern "No raw \$_GET/\$_POST/\$_REQUEST" -P '\$_(GET|POST|REQUEST|COOKIE)\s*\[' \
+    --exclude-dir=views --exclude-dir=docker
+check_pattern "No var_dump / print_r left in"    -P '\b(var_dump|print_r|dd)\s*\('
+check_pattern "No die()/exit() with debug data"  -P '\b(die|exit)\s*\([^)]{10,}\)'
+
+# =============================================================================
+# 4. XSS: unescaped output in views
+# =============================================================================
+section "XSS / output escaping (views)"
+
+# Flag <?= $var ?> patterns that look like raw user-controlled strings.
+# Exclude:
+#   - Html:: helper calls (already escape)
+#   - $form-> / $f-> / $this (ActiveForm, widget, view methods)
+#   - Boolean/integer model fields (id, _at, _by, _id, status, count, etc.)
+#   - Ternary expressions with only hardcoded string literals
+#   - Local variables that are clearly set to safe CSS class names ($badge, $class)
+UNESCAPED=$(grep -rn --include="*.php" -P '<\?=\s*\$' views/ 2>/dev/null \
+    | grep -vP '(Html::|->field\(|->widget\(|\$this->|\$form->|\$f->|\$pager)' \
+    | grep -vP '(->id\b|->enabled\b|_at\b|_by\b|_id\b|->verbosity\b|->forks\b|->become\b)' \
+    | grep -vP "(\\\$badge\b|\\\$class\b|\\\$isNew\b|\\\$isEdit\b|\\\$stats\[)" \
+    | grep -vP "'\s*\?\s*'[^']*'\s*:\s*'|'\s*\?\s*'[^']*'\s*:\s*\"" \
+    || true)
+if [[ -z "$UNESCAPED" ]]; then
+    ok "No obvious unescaped variable output in views"
+else
+    echo -e "  ${YELLOW}⚠${NC}  Unescaped output candidates (review manually — may be false positives):"
+    echo "$UNESCAPED" | head -20 | sed 's/^/     /'
+fi
+
+# =============================================================================
+# 5. CSRF: detect remaining data-method="post" patterns
+# =============================================================================
+section "CSRF safety (no data-method='post')"
+
+CSRF_ISSUES=$(grep -rn --include="*.php" "data-method.*post\|data.method.*post" views/ 2>/dev/null \
+    | grep -vP ':[0-9]+:\s*//' || true)
+if [[ -z "$CSRF_ISSUES" ]]; then
+    ok "No data-method=\"post\" patterns found in views"
+else
+    fail "Found data-method=\"post\" — replace with explicit <form> + CSRF token"
+    echo "$CSRF_ISSUES" | sed 's/^/     /'
+fi
+
+# =============================================================================
+# 6. Migrations: file naming and class name consistency
+# =============================================================================
+section "Migration naming consistency"
+
+MIGRATION_ERRORS=0
+while IFS= read -r file; do
+    filename=$(basename "$file" .php)
+    classname=$(grep -oP 'class\s+\K[A-Za-z0-9_]+' "$file" 2>/dev/null | head -1)
+    if [[ -n "$classname" && "$classname" != "$filename" ]]; then
+        echo "  ${RED}✘${NC}  $file: class '$classname' ≠ filename '$filename'"
+        MIGRATION_ERRORS=$((MIGRATION_ERRORS+1))
+    fi
+done < <(find migrations -name "*.php" 2>/dev/null)
+
+if [[ $MIGRATION_ERRORS -eq 0 ]]; then
+    ok "All migration class names match their filenames"
+else
+    fail "$MIGRATION_ERRORS migration(s) have mismatched class names"
+fi
+
+# Duplicate migration timestamps
+DUPES=$(find migrations -name "m*.php" 2>/dev/null \
+    | sed 's|.*/||;s|\.php||' | sort | uniq -d)
+if [[ -z "$DUPES" ]]; then
+    ok "No duplicate migration timestamps"
+else
+    fail "Duplicate migration timestamps found: $DUPES"
+fi
+
+# =============================================================================
+# 7. Composer validation
+# =============================================================================
+section "Composer"
+
+if dc composer validate --no-check-all --quiet 2>&1; then
+    ok "composer.json is valid"
+else
+    fail "composer.json validation failed"
+fi
+
+# Check for known security advisories
+AUDIT=$(dc composer audit --no-dev 2>&1 || true)
+if echo "$AUDIT" | grep -qiP "CVE-|GHSA-|Found \d+ vulnerab"; then
+    fail "composer audit found security advisories"
+    echo "$AUDIT" | head -20 | sed 's/^/     /'
+else
+    ok "No known security vulnerabilities in dependencies"
+fi
+
+# =============================================================================
+# 8. PHP_CodeSniffer — PSR-12
+# =============================================================================
+section "PHP_CodeSniffer (PSR-12)"
+
+if dc php vendor/bin/phpcs --version >/dev/null 2>&1; then
+    PHPCS_OUT=$(dc php vendor/bin/phpcs \
+        --standard=PSR12 \
+        --extensions=php \
+        --ignore=vendor,.composer,runtime,@runtime,web/assets \
+        --report=summary \
+        -q \
+        . 2>&1 || true)
+    PHPCS_ERRORS=$(echo "$PHPCS_OUT" | grep -cP "^FOUND" || true)
+    if [[ $PHPCS_ERRORS -eq 0 ]]; then
+        ok "PSR-12 check passed"
+    else
+        fail "PSR-12 violations found"
+        echo "$PHPCS_OUT" | tail -20 | sed 's/^/     /'
+    fi
+else
+    skip "phpcs not available"
+fi
+
+# =============================================================================
+# 9. PHPStan — static analysis (level 5)
+# =============================================================================
+section "PHPStan (level 5)"
+
+if [[ $FAST -eq 1 ]]; then
+    skip "PHPStan (--fast mode)"
+elif dc php vendor/bin/phpstan --version >/dev/null 2>&1; then
+    PHPSTAN_OUT=$(dc php vendor/bin/phpstan analyse \
+        --no-progress \
+        --error-format=table \
+        --configuration=phpstan.neon \
+        2>&1 || true)
+    if echo "$PHPSTAN_OUT" | grep -q "\[OK\]"; then
+        ok "PHPStan level 5 passed"
+    else
+        fail "PHPStan found errors"
+        echo "$PHPSTAN_OUT" | tail -30 | sed 's/^/     /'
+    fi
+else
+    skip "phpstan not available"
+fi
+
+# =============================================================================
+# 10. PHPUnit — unit tests
+# =============================================================================
+section "PHPUnit — unit tests"
+
+UNIT_OUT=$(dc php vendor/bin/phpunit --testsuite=Unit --colors=never 2>&1 || true)
+if echo "$UNIT_OUT" | grep -qP "^OK|Tests: .* Failures: 0"; then
+    SUMMARY=$(echo "$UNIT_OUT" | grep -P "^OK|Tests:")
+    ok "Unit tests passed ($SUMMARY)"
+else
+    fail "Unit tests failed"
+    echo "$UNIT_OUT" | tail -30 | sed 's/^/     /'
+fi
+
+# =============================================================================
+# 11. PHPUnit — integration tests
+# =============================================================================
+section "PHPUnit — integration tests"
+
+if [[ $FAST -eq 1 ]]; then
+    skip "Integration tests (--fast mode)"
+else
+    INT_OUT=$(dc php vendor/bin/phpunit --testsuite=Integration --colors=never 2>&1 || true)
+    if echo "$INT_OUT" | grep -qP "^OK|Tests: .* Failures: 0"; then
+        SUMMARY=$(echo "$INT_OUT" | grep -P "^OK|Tests:")
+        ok "Integration tests passed ($SUMMARY)"
+    elif echo "$INT_OUT" | grep -q "No tests executed"; then
+        skip "Integration tests (no tests executed)"
+    elif echo "$INT_OUT" | grep -qi "Access denied\|Connection refused\|SQLSTATE\[HY000\] \[1044\]"; then
+        skip "Integration tests (test database not available — run: php yii setup/test-db)"
+    else
+        fail "Integration tests failed"
+        echo "$INT_OUT" | tail -30 | sed 's/^/     /'
+    fi
+fi
+
+# =============================================================================
+# 12. Consistency checks
+# =============================================================================
+section "Consistency checks"
+
+# Every controller should extend BaseController or yii Controller
+CTRL_ISSUES=$(grep -rLn "extends BaseController\|extends Controller\|extends \\\yii" controllers/ 2>/dev/null \
+    | grep -v "^Binary\|api/" || true)
+if [[ -z "$CTRL_ISSUES" ]]; then
+    ok "All controllers extend a base controller"
+else
+    fail "Controller(s) with unexpected base class"
+    echo "$CTRL_ISSUES" | sed 's/^/     /'
+fi
+
+# Every model should extend ActiveRecord or Model
+MODEL_ISSUES=$(grep -rL "extends ActiveRecord\|extends Model\|extends \\\yii\|extends FormModel" models/ 2>/dev/null \
+    | grep -v "^Binary" || true)
+if [[ -z "$MODEL_ISSUES" ]]; then
+    ok "All models extend an ActiveRecord/Model base"
+else
+    fail "Model(s) with unexpected base class"
+    echo "$MODEL_ISSUES" | sed 's/^/     /'
+fi
+
+# No TODO/FIXME/HACK left in source (warn only, don't fail)
+TODOS=$(grep -rn --include="*.php" \
+    --exclude-dir=vendor --exclude-dir=.composer \
+    -P '\b(TODO|FIXME|HACK|XXX)\b' . 2>/dev/null || true)
+if [[ -z "$TODOS" ]]; then
+    ok "No TODO/FIXME/HACK markers in source"
+else
+    echo -e "  ${YELLOW}⚠${NC}  TODO/FIXME markers found (not a failure, review later):"
+    echo "$TODOS" | head -10 | sed 's/^/     /'
+fi
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo -e "\n${BOLD}════════════════════════════════════════${NC}"
+echo -e "${BOLD}Results: ${GREEN}${PASS} passed${NC}  ${RED}${FAIL} failed${NC}  ${YELLOW}${SKIP} skipped${NC}"
+
+if [[ $FAIL -gt 0 ]]; then
+    echo -e "\n${RED}Failed checks:${NC}"
+    for e in "${ERRORS[@]}"; do echo -e "  ${RED}✘${NC}  $e"; done
+    echo ""
+    exit 1
+fi
+
+echo -e "\n${GREEN}${BOLD}All checks passed.${NC}\n"
+exit 0

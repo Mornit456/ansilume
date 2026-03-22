@@ -6,6 +6,7 @@ namespace app\tests\unit\models;
 
 use app\models\TeamProject;
 use PHPUnit\Framework\TestCase;
+use yii\db\BaseActiveRecord;
 
 /**
  * Tests for TeamProject role constants and validation.
@@ -26,8 +27,7 @@ class TeamProjectTest extends TestCase
     public function testValidRolePassesValidation(): void
     {
         foreach ([TeamProject::ROLE_VIEWER, TeamProject::ROLE_OPERATOR] as $role) {
-            $tp       = new TeamProject();
-            $tp->role = $role;
+            $tp = $this->makeTeamProject($role);
             $tp->validate(['role']);
             $this->assertFalse($tp->hasErrors('role'), "Role '{$role}' should be valid");
         }
@@ -35,9 +35,22 @@ class TeamProjectTest extends TestCase
 
     public function testInvalidRoleFailsValidation(): void
     {
-        $tp       = new TeamProject();
-        $tp->role = 'superadmin';
+        $tp = $this->makeTeamProject('superadmin');
         $tp->validate(['role']);
         $this->assertTrue($tp->hasErrors('role'));
+    }
+
+    private function makeTeamProject(string $role): TeamProject
+    {
+        $tp = $this->getMockBuilder(TeamProject::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['attributes', 'save'])
+            ->getMock();
+        $tp->method('attributes')->willReturn(['team_id', 'project_id', 'role', 'created_at']);
+        $tp->method('save')->willReturn(true);
+        $ref = new \ReflectionProperty(BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($tp, ['team_id' => 1, 'project_id' => 1, 'role' => $role, 'created_at' => null]);
+        return $tp;
     }
 }

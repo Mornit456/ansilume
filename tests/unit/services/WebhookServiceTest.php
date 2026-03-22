@@ -41,10 +41,11 @@ class WebhookServiceTest extends TestCase
 
     public function testPayloadContainsJobFields(): void
     {
-        $job = $this->makeJob(7, Job::STATUS_FAILED);
-        $job->exit_code    = 1;
-        $job->started_at   = 1710000000;
-        $job->finished_at  = 1710000120;
+        $job = $this->makeJob(7, Job::STATUS_FAILED, [
+            'exit_code'   => 1,
+            'started_at'  => 1710000000,
+            'finished_at' => 1710000120,
+        ]);
 
         $payload = $this->service->testBuildPayload(Webhook::EVENT_JOB_FAILURE, $job);
 
@@ -83,13 +84,23 @@ class WebhookServiceTest extends TestCase
         $this->assertNotSame($sig1, $sig2);
     }
 
-    private function makeJob(int $id, string $status): Job
+    private function makeJob(int $id, string $status, array $extra = []): Job
     {
-        $job = new Job();
-        $job->id              = $id;
-        $job->status          = $status;
-        $job->job_template_id = 1;
-        $job->launched_by     = 1;
+        $job = $this->getMockBuilder(Job::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods([])
+            ->getMock();
+        $ref = new \ReflectionProperty(\yii\db\BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($job, array_merge([
+            'id'              => $id,
+            'status'          => $status,
+            'job_template_id' => 1,
+            'launched_by'     => 1,
+            'exit_code'       => null,
+            'started_at'      => null,
+            'finished_at'     => null,
+        ], $extra));
         return $job;
     }
 }

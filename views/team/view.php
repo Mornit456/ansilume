@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 use app\models\TeamProject;
 use yii\helpers\Html;
+use yii\helpers\Url;
 use yii\widgets\ActiveForm;
 
 $this->title = Html::encode($team->name);
@@ -17,11 +18,11 @@ $this->title = Html::encode($team->name);
     <h2 class="mb-0"><?= Html::encode($team->name) ?></h2>
     <div>
         <?= Html::a('Edit', ['update', 'id' => $team->id], ['class' => 'btn btn-outline-secondary']) ?>
-        <?= Html::a('Delete', ['delete', 'id' => $team->id], [
-            'class' => 'btn btn-outline-danger ms-1',
-            'data-method' => 'post',
-            'data-confirm' => 'Delete team "' . Html::encode($team->name) . '"? All member and project assignments will be removed.',
-        ]) ?>
+        <form method="post" action="<?= Url::to(['delete', 'id' => $team->id]) ?>" style="display:inline"
+              onsubmit="return confirm('Delete team &quot;<?= Html::encode($team->name) ?>&quot;? All member and project assignments will be removed.')">
+            <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+            <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+        </form>
         <?= Html::a('Back', ['index'], ['class' => 'btn btn-outline-secondary ms-1']) ?>
     </div>
 </div>
@@ -45,11 +46,11 @@ $this->title = Html::encode($team->name);
                             <tr>
                                 <td><?= Html::encode($tm->user->username ?? '—') ?></td>
                                 <td class="text-end">
-                                    <?= Html::a('Remove', ['remove-member', 'id' => $team->id, 'userId' => $tm->user_id], [
-                                        'class' => 'btn btn-sm btn-outline-danger',
-                                        'data-method' => 'post',
-                                        'data-confirm' => 'Remove this member?',
-                                    ]) ?>
+                                    <form method="post" action="<?= Url::to(['remove-member', 'id' => $team->id, 'userId' => $tm->user_id]) ?>" style="display:inline"
+                                          onsubmit="return confirm('Remove this member?')">
+                                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -94,11 +95,11 @@ $this->title = Html::encode($team->name);
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    <?= Html::a('Remove', ['remove-project', 'id' => $team->id, 'projectId' => $tp->project_id], [
-                                        'class' => 'btn btn-sm btn-outline-danger',
-                                        'data-method' => 'post',
-                                        'data-confirm' => 'Remove project access?',
-                                    ]) ?>
+                                    <form method="post" action="<?= Url::to(['remove-project', 'id' => $team->id, 'projectId' => $tp->project_id]) ?>" style="display:inline"
+                                          onsubmit="return confirm('Remove project access?')">
+                                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

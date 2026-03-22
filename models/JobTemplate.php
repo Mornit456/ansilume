@@ -28,6 +28,7 @@ use yii\db\ActiveRecord;
  * @property string|null $survey_fields     JSON array of SurveyField definitions
  * @property bool        $notify_on_failure
  * @property string|null $notify_emails     JSON array of email addresses
+ * @property string|null $trigger_token     Hashed trigger token (bcrypt)
  * @property int         $created_by
  * @property int         $created_at
  * @property int         $updated_at

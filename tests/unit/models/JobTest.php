@@ -6,6 +6,7 @@ namespace app\tests\unit\models;
 
 use app\models\Job;
 use PHPUnit\Framework\TestCase;
+use yii\db\BaseActiveRecord;
 
 /**
  * Tests for Job model status helpers — no database required.
@@ -71,8 +72,18 @@ class JobTest extends TestCase
 
     private function makeJob(string $status): Job
     {
-        $job = new Job();
-        $job->status = $status;
+        $job = $this->getMockBuilder(Job::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['attributes', 'save'])
+            ->getMock();
+        $job->method('attributes')->willReturn(
+            ['id', 'status', 'job_template_id', 'launched_by', 'queued_at',
+             'started_at', 'finished_at', 'exit_code', 'created_at', 'updated_at']
+        );
+        $job->method('save')->willReturn(true);
+        $ref = new \ReflectionProperty(BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($job, ['status' => $status]);
         return $job;
     }
 }
