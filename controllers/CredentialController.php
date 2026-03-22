@@ -159,7 +159,8 @@ class CredentialController extends BaseController
             };
         }
 
-        $privateKey = $post['private_key'] ?? '';
+        // Normalise line endings — browsers submit \r\n from textareas
+        $privateKey = str_replace("\r\n", "\n", str_replace("\r", "\n", $post['private_key'] ?? ''));
         $secrets    = ['private_key' => $privateKey];
 
         if ($privateKey !== '') {

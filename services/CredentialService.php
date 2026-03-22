@@ -89,8 +89,10 @@ class CredentialService extends Component
     public function analyzePrivateKey(string $privateKey): array
     {
         $tmp = tempnam(sys_get_temp_dir(), 'ansilume_key_');
-        // Ensure trailing newline — ssh-keygen requires it for OpenSSH format keys
-        file_put_contents($tmp, rtrim($privateKey) . "\n");
+        // Normalise to Unix line endings — browsers submit \r\n from textareas
+        // and OpenSSH key format requires \n only.
+        $normalized = str_replace("\r\n", "\n", str_replace("\r", "\n", $privateKey));
+        file_put_contents($tmp, rtrim($normalized) . "\n");
         chmod($tmp, 0600);
 
         try {
