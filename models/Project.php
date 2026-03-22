@@ -54,7 +54,7 @@ class Project extends ActiveRecord
             [['name'], 'string', 'max' => 128],
             [['description'], 'string'],
             [['scm_type'], 'in', 'range' => [self::SCM_TYPE_GIT, self::SCM_TYPE_MANUAL]],
-            [['scm_url'], 'url', 'when' => fn($m) => $m->scm_type === self::SCM_TYPE_GIT],
+            [['scm_url'], 'validateScmUrl', 'when' => fn($m) => $m->scm_type === self::SCM_TYPE_GIT],
             [['scm_url', 'local_path'], 'string', 'max' => 512],
             [['scm_branch'], 'string', 'max' => 128],
             [['scm_credential_id'], 'integer'],
@@ -81,6 +81,26 @@ class Project extends ActiveRecord
     public function getInventories(): \yii\db\ActiveQuery
     {
         return $this->hasMany(Inventory::class, ['project_id' => 'id']);
+    }
+
+    public function validateScmUrl(): void
+    {
+        $url = $this->scm_url;
+        if (empty($url)) {
+            return; // required rule handles empty
+        }
+        // Accept HTTP/HTTPS URLs
+        if (preg_match('#^https?://.+#i', $url)) {
+            return;
+        }
+        // Accept SSH git URLs: git@host:path.git or ssh://git@host/path
+        if (preg_match('#^(git|ssh)@[\w.\-]+:.+#i', $url)) {
+            return;
+        }
+        if (preg_match('#^ssh://[\w.\-@]+/.+#i', $url)) {
+            return;
+        }
+        $this->addError('scm_url', 'SCM URL must be a valid HTTPS URL (https://…) or SSH URL (git@host:org/repo.git).');
     }
 
     public static function statusLabel(string $status): string
