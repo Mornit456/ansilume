@@ -21,12 +21,14 @@ use yii\db\ActiveRecord;
  * @property int|null    $exit_code
  * @property int|null    $pid
  * @property string|null $worker_id
+ * @property int|null    $runner_id
  * @property int         $has_changes
  * @property int         $created_at
  * @property int         $updated_at
  *
  * @property JobTemplate $jobTemplate
  * @property User        $launcher
+ * @property Runner|null $runner
  * @property JobLog[]    $logs
  */
 class Job extends ActiveRecord
@@ -139,6 +141,11 @@ class Job extends ActiveRecord
     public function getLauncher(): \yii\db\ActiveQuery
     {
         return $this->hasOne(User::class, ['id' => 'launched_by']);
+    }
+
+    public function getRunner(): \yii\db\ActiveQuery
+    {
+        return $this->hasOne(Runner::class, ['id' => 'runner_id']);
     }
 
     public function getLogs(): \yii\db\ActiveQuery

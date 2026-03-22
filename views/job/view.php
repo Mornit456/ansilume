@@ -77,8 +77,15 @@ $isLive = !$job->isFinished();
                     <dd class="col-7" id="detail-finished"><?= $job->finished_at ? date('Y-m-d H:i:s', $job->finished_at) : '—' ?></dd>
                     <dt class="col-5">Exit code</dt>
                     <dd class="col-7" id="detail-exit-code"><?= $job->exit_code !== null ? $job->exit_code : '—' ?></dd>
-                    <dt class="col-5">Worker</dt>
-                    <dd class="col-7"><code><?= $job->worker_id ? Html::encode($job->worker_id) : '—' ?></code></dd>
+                    <dt class="col-5">Runner</dt>
+                    <dd class="col-7">
+                        <?php if ($job->runner): ?>
+                            <?= Html::a(Html::encode($job->runner->name), ['/runner-group/view', 'id' => $job->runner->runner_group_id]) ?>
+                            <span class="text-muted small">(<?= Html::encode($job->runner->group->name ?? '') ?>)</span>
+                        <?php else: ?>
+                            <code><?= $job->worker_id ? Html::encode($job->worker_id) : '—' ?></code>
+                        <?php endif; ?>
+                    </dd>
                     <?php if ($job->limit): ?>
                         <dt class="col-5">Limit</dt>
                         <dd class="col-7"><code><?= Html::encode($job->limit) ?></code></dd>

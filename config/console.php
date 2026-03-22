@@ -72,6 +72,12 @@ return [
         'webhookService' => [
             'class' => 'app\services\WebhookService',
         ],
+        'jobCompletionService' => [
+            'class' => 'app\services\JobCompletionService',
+        ],
+        'jobClaimService' => [
+            'class' => 'app\services\JobClaimService',
+        ],
         'queue' => [
             'class'   => 'yii\queue\redis\Queue',
             'redis'   => [

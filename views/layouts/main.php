@@ -129,9 +129,12 @@ $active = fn(string $prefix): string => str_starts_with($route, $prefix) ? ' act
 
     <span class="nav-section">Operations</span>
     <nav class="nav flex-column">
-        <a class="nav-link<?= $active('job') ?>"      href="<?= Url::to(['/job/index']) ?>">Jobs</a>
+        <a class="nav-link<?= $active('job') ?>"          href="<?= Url::to(['/job/index']) ?>">Jobs</a>
         <?php if (\Yii::$app->user->can('job.launch')): ?>
-        <a class="nav-link<?= $active('schedule') ?>" href="<?= Url::to(['/schedule/index']) ?>">Schedules</a>
+        <a class="nav-link<?= $active('schedule') ?>"     href="<?= Url::to(['/schedule/index']) ?>">Schedules</a>
+        <?php endif; ?>
+        <?php if (\Yii::$app->user->can('runner-group.view')): ?>
+        <a class="nav-link<?= $active('runner-group') ?>" href="<?= Url::to(['/runner-group/index']) ?>">Runners</a>
         <?php endif; ?>
     </nav>
 

@@ -9,7 +9,8 @@ declare(strict_types=1);
 /** @var app\models\Job[] $recentJobs */
 /** @var app\models\Job[] $runningJobs */
 /** @var app\models\JobTemplate[] $templates */
-/** @var int $workerCount */
+/** @var int $onlineRunners */
+/** @var int $totalRunners */
 
 use app\models\Job;
 use yii\helpers\Html;
@@ -45,10 +46,14 @@ $this->title = 'Dashboard';
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card h-100 <?= $workerCount > 0 ? 'text-bg-success' : 'text-bg-danger' ?>">
+        <?php
+        $runnerBg = $totalRunners === 0 ? 'text-bg-secondary'
+            : ($onlineRunners === 0 ? 'text-bg-danger' : 'text-bg-success');
+        ?>
+        <div class="card h-100 <?= $runnerBg ?>">
             <div class="card-body">
-                <div class="fs-2 fw-bold"><?= $workerCount ?></div>
-                <div>Worker<?= $workerCount !== 1 ? 's' : '' ?> Active</div>
+                <div class="fs-2 fw-bold"><?= $onlineRunners ?>/<?= $totalRunners ?></div>
+                <div><?= Html::a('Runners Online', Url::to(['/runner-group/index']), ['class' => 'text-white text-decoration-none']) ?></div>
             </div>
         </div>
     </div>

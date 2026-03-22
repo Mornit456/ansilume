@@ -7,6 +7,7 @@ declare(strict_types=1);
 /** @var app\models\Project[] $projects */
 /** @var app\models\Inventory[] $inventories */
 /** @var app\models\Credential[] $credentials */
+/** @var app\models\RunnerGroup[] $runnerGroups */
 
 use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
@@ -56,6 +57,16 @@ $this->title = $model->isNewRecord ? 'New Job Template' : 'Edit: ' . $model->nam
         'class'       => 'form-control font-monospace',
         'placeholder' => '{"env": "production", "version": "1.2.3"}',
     ])->hint('JSON object. Overridable at launch time.') ?>
+
+    <h5 class="mt-3 text-muted">Runner</h5>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <?= $form->field($model, 'runner_group_id')->dropDownList(
+                ArrayHelper::map($runnerGroups, 'id', 'name'),
+                ['prompt' => '— Select runner group —']
+            )->hint('Which group of runners should execute this job.') ?>
+        </div>
+    </div>
 
     <h5 class="mt-3 text-muted">Options</h5>
     <div class="row g-2">

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
-use app\components\WorkerHeartbeat;
 use app\models\Job;
 use app\models\JobTemplate;
 use app\models\LoginForm;
 use app\models\Project;
+use app\models\Runner;
+use app\models\RunnerGroup;
 use app\services\AuditService;
 use yii\web\Response;
 
@@ -77,18 +78,19 @@ class SiteController extends BaseController
             ->orderBy('name')
             ->all();
 
-        $workers = WorkerHeartbeat::all();
-        $now     = time();
-        $aliveWorkers = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
+        $cutoff       = time() - RunnerGroup::STALE_AFTER;
+        $totalRunners  = (int)Runner::find()->count();
+        $onlineRunners = (int)Runner::find()->where(['>=', 'last_seen_at', $cutoff])->count();
 
         return $this->render('index', [
-            'stats'        => $stats,
-            'dailyCounts'  => $dailyCounts,
-            'statusCounts' => $statusCounts,
-            'recentJobs'   => $recentJobs,
-            'runningJobs'  => $runningJobs,
-            'templates'    => $templates,
-            'workerCount'  => count($aliveWorkers),
+            'stats'         => $stats,
+            'dailyCounts'   => $dailyCounts,
+            'statusCounts'  => $statusCounts,
+            'recentJobs'    => $recentJobs,
+            'runningJobs'   => $runningJobs,
+            'templates'     => $templates,
+            'onlineRunners' => $onlineRunners,
+            'totalRunners'  => $totalRunners,
         ]);
     }
 

@@ -8,6 +8,7 @@ use app\models\Credential;
 use app\models\Inventory;
 use app\models\JobTemplate;
 use app\models\Project;
+use app\models\RunnerGroup;
 use app\services\JobLaunchService;
 use yii\data\ActiveDataProvider;
 use yii\web\NotFoundHttpException;
@@ -150,9 +151,10 @@ class JobTemplateController extends BaseController
     {
         return [
             'model'       => $model,
-            'projects'    => Project::find()->orderBy('name')->all(),
-            'inventories' => Inventory::find()->orderBy('name')->all(),
-            'credentials' => Credential::find()->orderBy('name')->all(),
+            'projects'      => Project::find()->orderBy('name')->all(),
+            'inventories'   => Inventory::find()->orderBy('name')->all(),
+            'credentials'   => Credential::find()->orderBy('name')->all(),
+            'runnerGroups'  => RunnerGroup::find()->orderBy('name')->all(),
         ];
     }
 

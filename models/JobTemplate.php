@@ -24,6 +24,7 @@ use yii\db\ActiveRecord;
  * @property string|null $limit
  * @property string|null $tags
  * @property string|null $skip_tags
+ * @property int|null    $runner_group_id
  * @property string|null $survey_fields     JSON array of SurveyField definitions
  * @property bool        $notify_on_failure
  * @property string|null $notify_emails     JSON array of email addresses
@@ -34,6 +35,7 @@ use yii\db\ActiveRecord;
  * @property Project     $project
  * @property Inventory   $inventory
  * @property Credential|null $credential
+ * @property RunnerGroup|null $runnerGroup
  * @property User        $creator
  * @property Job[]       $jobs
  */
@@ -70,7 +72,7 @@ class JobTemplate extends ActiveRecord
             [['notify_emails'], 'validateJson'],
             [['notify_on_failure'], 'boolean'],
             [['trigger_token'], 'string', 'max' => 64],
-            [['project_id', 'inventory_id', 'credential_id', 'created_by'], 'integer'],
+            [['project_id', 'inventory_id', 'credential_id', 'runner_group_id', 'created_by'], 'integer'],
         ];
     }
 
@@ -97,6 +99,11 @@ class JobTemplate extends ActiveRecord
     public function getCredential(): \yii\db\ActiveQuery
     {
         return $this->hasOne(Credential::class, ['id' => 'credential_id']);
+    }
+
+    public function getRunnerGroup(): \yii\db\ActiveQuery
+    {
+        return $this->hasOne(RunnerGroup::class, ['id' => 'runner_group_id']);
     }
 
     public function getCreator(): \yii\db\ActiveQuery

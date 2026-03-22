@@ -16,7 +16,8 @@ $config = [
         'api/v1/projects'      => 'app\controllers\api\v1\ProjectsController',
         'api/v1/inventories'   => 'app\controllers\api\v1\InventoriesController',
         'api/v1/credentials'   => 'app\controllers\api\v1\CredentialsController',
-        'api/v1/schedules'     => 'app\controllers\api\v1\SchedulesController',
+        'api/v1/schedules'        => 'app\controllers\api\v1\SchedulesController',
+        'api/runner/v1/jobs'      => 'app\controllers\api\runner\JobsController',
     ],
     'aliases'             => [
         '@bower' => '@vendor/bower-asset',
@@ -112,6 +113,12 @@ $config = [
         'webhookService' => [
             'class' => 'app\services\WebhookService',
         ],
+        'jobCompletionService' => [
+            'class' => 'app\services\JobCompletionService',
+        ],
+        'jobClaimService' => [
+            'class' => 'app\services\JobClaimService',
+        ],
         'urlManager' => [
             'enablePrettyUrl'     => true,
             'showScriptName'      => false,
@@ -136,6 +143,18 @@ $config = [
                 ['pattern' => 'api/v1/schedules/<id:\d+>/toggle', 'route' => 'api/v1/schedules/toggle', 'verb' => 'POST'],
                 ['pattern' => 'api/v1/schedules/<id:\d+>',   'route' => 'api/v1/schedules/view'],
                 ['pattern' => 'api/v1/schedules',            'route' => 'api/v1/schedules/index'],
+                // Runner pull API
+                ['pattern' => 'api/runner/v1/heartbeat',              'route' => 'api/runner/v1/jobs/heartbeat', 'verb' => 'POST'],
+                ['pattern' => 'api/runner/v1/jobs/claim',              'route' => 'api/runner/v1/jobs/claim',     'verb' => 'POST'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/logs',      'route' => 'api/runner/v1/jobs/logs'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/complete',  'route' => 'api/runner/v1/jobs/complete'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/tasks',     'route' => 'api/runner/v1/jobs/tasks'],
+                // Runner group UI
+                'runner-group/<action>'           => 'runner-group/<action>',
+                'runner-group/<action>/<id:\d+>'  => 'runner-group/<action>',
+                'runner/create'                   => 'runner/create',
+                'runner/delete/<id:\d+>'          => 'runner/delete',
+                'runner/regenerate-token/<id:\d+>' => 'runner/regenerate-token',
                 // Health check
                 'health' => 'health/index',
                 // Inbound trigger

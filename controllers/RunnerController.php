@@ -1,0 +1,98 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\controllers;
+
+use app\models\Runner;
+use app\models\RunnerGroup;
+use yii\web\NotFoundHttpException;
+use yii\web\Response;
+
+class RunnerController extends BaseController
+{
+    protected function accessRules(): array
+    {
+        return [
+            ['actions' => ['create', 'delete', 'regenerate-token'], 'allow' => true, 'roles' => ['runner-group.update']],
+        ];
+    }
+
+    protected function verbRules(): array
+    {
+        return [
+            'create'           => ['POST'],
+            'delete'           => ['POST'],
+            'regenerate-token' => ['POST'],
+        ];
+    }
+
+    public function actionCreate(): Response
+    {
+        $groupId = (int)\Yii::$app->request->post('group_id');
+        $group   = RunnerGroup::findOne($groupId);
+
+        if ($group === null) {
+            \Yii::$app->session->setFlash('danger', 'Runner group not found.');
+            return $this->redirect(['/runner-group/index']);
+        }
+
+        $model = new Runner();
+        $model->runner_group_id = $group->id;
+        $model->name            = (string)\Yii::$app->request->post('name', '');
+        $model->description     = (string)\Yii::$app->request->post('description', '') ?: null;
+        $model->created_by      = (int)\Yii::$app->user->id;
+
+        $token            = Runner::generateToken();
+        $model->token_hash = $token['hash'];
+
+        if (!$model->validate() || !$model->save()) {
+            \Yii::$app->session->setFlash('danger', 'Failed to create runner: ' . json_encode($model->errors));
+            return $this->redirect(['/runner-group/view', 'id' => $group->id]);
+        }
+
+        \Yii::$app->session->setFlash('runner_token', [
+            'runner_id'   => $model->id,
+            'runner_name' => $model->name,
+            'raw_token'   => $token['raw'],
+        ]);
+
+        return $this->redirect(['/runner-group/view', 'id' => $group->id]);
+    }
+
+    public function actionDelete(int $id): Response
+    {
+        $runner  = $this->findModel($id);
+        $groupId = $runner->runner_group_id;
+        $runner->delete();
+
+        \Yii::$app->session->setFlash('success', "Runner \"{$runner->name}\" deleted.");
+        return $this->redirect(['/runner-group/view', 'id' => $groupId]);
+    }
+
+    public function actionRegenerateToken(int $id): Response
+    {
+        $runner  = $this->findModel($id);
+        $token   = Runner::generateToken();
+
+        $runner->token_hash = $token['hash'];
+        $runner->save(false);
+
+        \Yii::$app->session->setFlash('runner_token', [
+            'runner_id'   => $runner->id,
+            'runner_name' => $runner->name,
+            'raw_token'   => $token['raw'],
+        ]);
+
+        return $this->redirect(['/runner-group/view', 'id' => $runner->runner_group_id]);
+    }
+
+    private function findModel(int $id): Runner
+    {
+        $model = Runner::findOne($id);
+        if ($model === null) {
+            throw new NotFoundHttpException("Runner #{$id} not found.");
+        }
+        return $model;
+    }
+}

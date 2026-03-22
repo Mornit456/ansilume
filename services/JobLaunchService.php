@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace app\services;
 
-use app\jobs\RunAnsibleJob;
 use app\models\Job;
 use app\models\JobTemplate;
 use yii\base\Component;
-use yii\db\Exception as DbException;
 
 /**
  * Orchestrates the creation and queuing of a Job.
@@ -54,17 +52,6 @@ class JobLaunchService extends Component
         } catch (\Throwable $e) {
             $transaction->rollBack();
             throw new \RuntimeException('Job launch failed: ' . $e->getMessage(), 0, $e);
-        }
-
-        // Push to queue AFTER commit so the worker sees the committed job record.
-        // If the push fails, mark the job failed rather than leaving it stuck in queued.
-        try {
-            \Yii::$app->queue->push(new RunAnsibleJob(['jobId' => $job->id]));
-        } catch (\Throwable $e) {
-            $job->status      = Job::STATUS_FAILED;
-            $job->finished_at = time();
-            $job->save(false);
-            throw new \RuntimeException('Failed to enqueue job: ' . $e->getMessage(), 0, $e);
         }
 
         \Yii::$app->get('auditService')->log(
