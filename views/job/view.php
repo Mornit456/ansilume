@@ -136,8 +136,8 @@ $isLive = !$job->isFinished();
                     <td><?= Html::encode($hs->host) ?></td>
                     <td class="text-center"><?= $hs->ok ?></td>
                     <td class="text-center"><?= $hs->changed ?></td>
-                    <td class="text-center"><?= $hs->failed ?></td>
-                    <td class="text-center"><?= $hs->skipped ?></td>
+                    <td class="text-center"><?= $hs->failed // xss-ok: integer ?></td>
+                    <td class="text-center"><?= $hs->skipped // xss-ok: integer ?></td>
                     <td class="text-center"><?= $hs->unreachable ?></td>
                     <td class="text-center"><?= $hs->rescued ?></td>
                 </tr>

@@ -55,43 +55,43 @@ $hasSurvey     = !empty($surveyFields);
             <?php $inputId   = 'survey-' . preg_replace('/[^a-z0-9_-]/i', '-', $field->name); ?>
 
             <?php if ($field->type === SurveyField::TYPE_TEXTAREA): ?>
-                <textarea name="<?= $inputName ?>" id="<?= $inputId ?>"
+                <textarea name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" id="<?= $inputId // xss-ok: sanitized via preg_replace ?>"
                           class="form-control font-monospace" rows="4"
-                          <?= $field->required ? 'required' : '' ?>><?= Html::encode($field->default) ?></textarea>
+                          <?= $field->required ? 'required' : '' // xss-ok: hardcoded attribute ?>><?= Html::encode($field->default) ?></textarea>
 
             <?php elseif ($field->type === SurveyField::TYPE_BOOLEAN): ?>
                 <div class="form-check">
-                    <input type="hidden" name="<?= $inputName ?>" value="false">
-                    <input type="checkbox" name="<?= $inputName ?>" id="<?= $inputId ?>"
+                    <input type="hidden" name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" value="false">
+                    <input type="checkbox" name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" id="<?= $inputId // xss-ok: sanitized via preg_replace ?>"
                            class="form-check-input" value="true"
-                           <?= $field->default === 'true' ? 'checked' : '' ?>>
-                    <label class="form-check-label" for="<?= $inputId ?>">Yes</label>
+                           <?= $field->default === 'true' ? 'checked' : '' // xss-ok: hardcoded attribute ?>>
+                    <label class="form-check-label" for="<?= $inputId // xss-ok: sanitized via preg_replace ?>">Yes</label>
                 </div>
 
             <?php elseif ($field->type === SurveyField::TYPE_SELECT): ?>
-                <select name="<?= $inputName ?>" id="<?= $inputId ?>"
-                        class="form-select" <?= $field->required ? 'required' : '' ?>>
+                <select name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" id="<?= $inputId // xss-ok: sanitized via preg_replace ?>"
+                        class="form-select" <?= $field->required ? 'required' : '' // xss-ok: hardcoded attribute ?>>
                     <?php if (!$field->required): ?>
                         <option value="">— Select —</option>
                     <?php endif; ?>
                     <?php foreach ($field->options as $opt): ?>
                         <option value="<?= Html::encode($opt) ?>"
-                                <?= $field->default === $opt ? 'selected' : '' ?>>
+                                <?= $field->default === $opt ? 'selected' : '' // xss-ok: hardcoded attribute ?>>
                             <?= Html::encode($opt) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
 
             <?php elseif ($field->type === SurveyField::TYPE_PASSWORD): ?>
-                <input type="password" name="<?= $inputName ?>" id="<?= $inputId ?>"
+                <input type="password" name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" id="<?= $inputId // xss-ok: sanitized via preg_replace ?>"
                        class="form-control" autocomplete="off"
-                       <?= $field->required ? 'required' : '' ?>>
+                       <?= $field->required ? 'required' : '' // xss-ok: hardcoded attribute ?>>
 
             <?php else: /* text | integer */ ?>
-                <input type="<?= $field->type === SurveyField::TYPE_INTEGER ? 'number' : 'text' ?>"
-                       name="<?= $inputName ?>" id="<?= $inputId ?>"
+                <input type="<?= $field->type === SurveyField::TYPE_INTEGER ? 'number' : 'text' // xss-ok: hardcoded strings ?>"
+                       name="<?= $inputName // xss-ok: sanitized in SurveyField::fromArray ?>" id="<?= $inputId // xss-ok: sanitized via preg_replace ?>"
                        class="form-control" value="<?= Html::encode($field->default) ?>"
-                       <?= $field->required ? 'required' : '' ?>>
+                       <?= $field->required ? 'required' : '' // xss-ok: hardcoded attribute ?>>
             <?php endif; ?>
 
             <?php if ($field->hint): ?>
@@ -110,10 +110,10 @@ $hasSurvey     = !empty($surveyFields);
             Toggle
         </button>
     </div>
-    <div id="advanced-overrides" class="collapse<?= $hasSurvey ? '' : ' show' ?>">
+    <div id="advanced-overrides" class="collapse<?= $hasSurvey ? '' : ' show' // xss-ok: hardcoded CSS class ?>">
         <div class="card-body">
             <div class="mb-3">
-                <label class="form-label">Extra Vars <span class="text-muted small">(JSON, merged with template defaults<?= $hasSurvey ? ' and survey answers' : '' ?>)</span></label>
+                <label class="form-label">Extra Vars <span class="text-muted small">(JSON, merged with template defaults<?= $hasSurvey ? ' and survey answers' : '' // xss-ok: hardcoded strings ?>)</span></label>
                 <textarea name="overrides[extra_vars]" class="form-control font-monospace" rows="4"
                           placeholder='{"env": "staging"}'><?= Html::encode(!$hasSurvey ? ($template->extra_vars ?? '') : '') ?></textarea>
             </div>

@@ -27,7 +27,8 @@ $this->title = $model->isNewRecord ? 'New Project' : 'Edit: ' . $model->name;
         Project::SCM_TYPE_MANUAL => 'Manual (no SCM)',
     ]) ?>
 
-    <div id="git-fields" <?= $model->scm_type !== Project::SCM_TYPE_GIT ? 'style="display:none"' : '' ?>>
+    <div id="git-fields" <?= $model->scm_type !== Project::SCM_TYPE_GIT ? 'style="display:none"' : '' // xss-ok: hardcoded attribute ?>>
+
         <?= $form->field($model, 'scm_url')->textInput(['maxlength' => 512, 'placeholder' => 'git@github.com:org/repo.git']) ?>
         <?= $form->field($model, 'scm_branch')->textInput(['maxlength' => 128]) ?>
         <?= $form->field($model, 'scm_credential_id')->dropDownList(
@@ -37,7 +38,8 @@ $this->title = $model->isNewRecord ? 'New Project' : 'Edit: ' . $model->name;
         )->hint('Select an SSH Key credential to authenticate with a private repository. The public key must be added as a Deploy Key on GitHub/GitLab.') ?>
     </div>
 
-    <div id="manual-fields" <?= $model->scm_type !== Project::SCM_TYPE_MANUAL ? 'style="display:none"' : '' ?>>
+    <div id="manual-fields" <?= $model->scm_type !== Project::SCM_TYPE_MANUAL ? 'style="display:none"' : '' // xss-ok: hardcoded attribute ?>>
+
         <?= $form->field($model, 'local_path')->textInput([
             'maxlength'   => 512,
             'placeholder' => '/opt/playbooks/myproject',

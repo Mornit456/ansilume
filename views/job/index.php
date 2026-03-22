@@ -117,13 +117,13 @@ $this->title = 'Jobs';
                                 <span class="badge text-bg-warning"><?= $recap['changed'] ?> changed</span>
                             <?php endif; ?>
                             <?php if ($recap['failed'] > 0): ?>
-                                <span class="badge text-bg-danger"><?= $recap['failed'] ?> failed</span>
+                                <span class="badge text-bg-danger"><?= $recap['failed'] // xss-ok: integer ?> failed</span>
                             <?php endif; ?>
                             <?php if ($recap['unreachable'] > 0): ?>
                                 <span class="badge text-bg-dark"><?= $recap['unreachable'] ?> unreach</span>
                             <?php endif; ?>
                             <?php if ($recap['skipped'] > 0): ?>
-                                <span class="badge text-bg-secondary"><?= $recap['skipped'] ?> skip</span>
+                                <span class="badge text-bg-secondary"><?= $recap['skipped'] // xss-ok: integer ?> skip</span>
                             <?php endif; ?>
                         </span>
                         <?php else: ?>

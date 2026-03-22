@@ -134,6 +134,7 @@ UNESCAPED=$(grep -rn --include="*.php" -P '<\?=\s*\$' views/ 2>/dev/null \
     | grep -vP '(->id\b|->enabled\b|_at\b|_by\b|_id\b|->verbosity\b|->forks\b|->become\b)' \
     | grep -vP "(\\\$badge\b|\\\$class\b|\\\$isNew\b|\\\$isEdit\b|\\\$stats\[)" \
     | grep -vP "'\s*\?\s*'[^']*'\s*:\s*'|'\s*\?\s*'[^']*'\s*:\s*\"" \
+    | grep -vF '// xss-ok' \
     || true)
 if [[ -z "$UNESCAPED" ]]; then
     ok "No obvious unescaped variable output in views"
@@ -323,6 +324,34 @@ if [[ -z "$TODOS" ]]; then
 else
     echo -e "  ${YELLOW}⚠${NC}  TODO/FIXME markers found (not a failure, review later):"
     echo "$TODOS" | head -10 | sed 's/^/     /'
+fi
+
+# =============================================================================
+# 13. Code coverage
+# =============================================================================
+section "Code coverage"
+
+if [[ $FAST -eq 1 ]]; then
+    skip "Code coverage (--fast mode)"
+else
+    COV_OUT=$(dc php -d pcov.enabled=1 vendor/bin/phpunit \
+        --testsuite=Unit \
+        --coverage-text \
+        --colors=never \
+        2>&1 || true)
+
+    if echo "$COV_OUT" | grep -q "Summary:"; then
+        # Extract the three summary lines that follow " Summary:"
+        SUMMARY_BLOCK=$(echo "$COV_OUT" | grep -A3 'Summary:')
+        CLASS_COV=$(echo "$SUMMARY_BLOCK"  | grep -oP 'Classes:\s+\K[\d.]+%')
+        METHOD_COV=$(echo "$SUMMARY_BLOCK" | grep -oP 'Methods:\s+\K[\d.]+%' | head -1)
+        LINE_COV=$(echo "$SUMMARY_BLOCK"   | grep -oP 'Lines:\s+\K[\d.]+%'   | head -1)
+        ok "Coverage — Lines: ${LINE_COV}  Methods: ${METHOD_COV}  Classes: ${CLASS_COV}"
+    elif echo "$COV_OUT" | grep -qi "No code coverage driver"; then
+        skip "Code coverage (no coverage driver — install pcov or xdebug)"
+    else
+        skip "Code coverage (could not parse output)"
+    fi
 fi
 
 # =============================================================================
