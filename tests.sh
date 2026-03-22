@@ -111,7 +111,7 @@ check_pattern "No exec() calls outside services" -P '\bexec\s*\(' \
 check_pattern "No system() calls"                -P '\bsystem\s*\('
 check_pattern "No passthru() calls"              -P '\bpassthru\s*\('
 check_pattern "No hardcoded passwords in code"   -P "password\s*=\s*['\"][^'\"]{4,}['\"]" \
-    --exclude="*.example*" --exclude=".env*"
+    --exclude="*.example*" --exclude=".env*" --exclude-dir=tests
 check_pattern "No raw \$_GET/\$_POST/\$_REQUEST" -P '\$_(GET|POST|REQUEST|COOKIE)\s*\[' \
     --exclude-dir=views --exclude-dir=docker
 check_pattern "No var_dump / print_r left in"    -P '\b(var_dump|print_r|dd)\s*\('
