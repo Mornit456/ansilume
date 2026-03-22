@@ -46,7 +46,7 @@ class NotificationService extends Component
     /**
      * @param string[] $recipients
      */
-    private function sendFailureMail(Job $job, array $recipients): void
+    protected function sendFailureMail(Job $job, array $recipients): void
     {
         $mailer   = \Yii::$app->mailer;
         $params   = \Yii::$app->params;

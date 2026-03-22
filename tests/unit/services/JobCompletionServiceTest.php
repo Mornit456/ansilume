@@ -1,0 +1,170 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\tests\unit\services;
+
+use app\models\Job;
+use app\services\AuditService;
+use app\services\JobCompletionService;
+use app\services\NotificationService;
+use app\services\WebhookService;
+use PHPUnit\Framework\TestCase;
+use yii\db\BaseActiveRecord;
+
+/**
+ * Tests for JobCompletionService::complete() — status determination logic.
+ */
+class JobCompletionServiceTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        // Stub Yii services so complete() doesn't need real implementations
+        $audit = $this->createStub(AuditService::class);
+        \Yii::$app->set('auditService', $audit);
+
+        $webhook = $this->getMockBuilder(WebhookService::class)->onlyMethods(['dispatch'])->getMock();
+        \Yii::$app->set('webhookService', $webhook);
+
+        $notify = $this->getMockBuilder(NotificationService::class)->onlyMethods(['notifyJobFailed'])->getMock();
+        \Yii::$app->set('notificationService', $notify);
+    }
+
+    public function testExitCodeZeroSetsStatusSucceeded(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 0);
+        $this->assertSame(Job::STATUS_SUCCEEDED, $job->status);
+    }
+
+    public function testNonZeroExitCodeSetsStatusFailed(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 1);
+        $this->assertSame(Job::STATUS_FAILED, $job->status);
+    }
+
+    public function testExitCodeTwoAlsoFails(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 2);
+        $this->assertSame(Job::STATUS_FAILED, $job->status);
+    }
+
+    public function testCompleteStoresExitCode(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 42);
+        $this->assertSame(42, $job->exit_code);
+    }
+
+    public function testCompleteSetsFinishedAt(): void
+    {
+        $before  = time();
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 0);
+        $this->assertGreaterThanOrEqual($before, $job->finished_at);
+    }
+
+    public function testHasChangesSetWhenTrue(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 0, hasChanges: true);
+        $this->assertSame(1, $job->has_changes);
+    }
+
+    public function testHasChangesNotSetWhenFalse(): void
+    {
+        $job     = $this->makeJob(Job::STATUS_RUNNING);
+        $service = new JobCompletionService();
+        $service->complete($job, 0, hasChanges: false);
+        $this->assertSame(0, $job->has_changes);
+    }
+
+    public function testWebhookDispatchedOnSuccess(): void
+    {
+        $webhook = $this->getMockBuilder(WebhookService::class)
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $webhook->expects($this->once())
+            ->method('dispatch')
+            ->with(\app\models\Webhook::EVENT_JOB_SUCCESS, $this->anything());
+        \Yii::$app->set('webhookService', $webhook);
+
+        $service = new JobCompletionService();
+        $service->complete($this->makeJob(Job::STATUS_RUNNING), 0);
+    }
+
+    public function testWebhookDispatchedOnFailure(): void
+    {
+        $webhook = $this->getMockBuilder(WebhookService::class)
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $webhook->expects($this->once())
+            ->method('dispatch')
+            ->with(\app\models\Webhook::EVENT_JOB_FAILURE, $this->anything());
+        \Yii::$app->set('webhookService', $webhook);
+
+        $service = new JobCompletionService();
+        $service->complete($this->makeJob(Job::STATUS_RUNNING), 1);
+    }
+
+    public function testNotificationSentOnFailure(): void
+    {
+        $notify = $this->getMockBuilder(NotificationService::class)
+            ->onlyMethods(['notifyJobFailed'])
+            ->getMock();
+        $notify->expects($this->once())->method('notifyJobFailed');
+        \Yii::$app->set('notificationService', $notify);
+
+        $service = new JobCompletionService();
+        $service->complete($this->makeJob(Job::STATUS_RUNNING), 1);
+    }
+
+    public function testNotificationNotSentOnSuccess(): void
+    {
+        $notify = $this->getMockBuilder(NotificationService::class)
+            ->onlyMethods(['notifyJobFailed'])
+            ->getMock();
+        $notify->expects($this->never())->method('notifyJobFailed');
+        \Yii::$app->set('notificationService', $notify);
+
+        $service = new JobCompletionService();
+        $service->complete($this->makeJob(Job::STATUS_RUNNING), 0);
+    }
+
+    private function makeJob(string $status): Job
+    {
+        $job = $this->getMockBuilder(Job::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['attributes', 'save'])
+            ->getMock();
+        $job->method('attributes')->willReturn(
+            ['id', 'status', 'exit_code', 'has_changes', 'finished_at',
+             'job_template_id', 'launched_by', 'queued_at', 'started_at', 'created_at', 'updated_at']
+        );
+        $job->method('save')->willReturn(true);
+        $ref = new \ReflectionProperty(BaseActiveRecord::class, '_attributes');
+        $ref->setAccessible(true);
+        $ref->setValue($job, [
+            'id'              => 1,
+            'status'          => $status,
+            'exit_code'       => null,
+            'has_changes'     => 0,
+            'finished_at'     => null,
+            'job_template_id' => 1,
+            'launched_by'     => 1,
+            'queued_at'       => null,
+            'started_at'      => time() - 5,
+            'created_at'      => null,
+            'updated_at'      => null,
+        ]);
+        return $job;
+    }
+}

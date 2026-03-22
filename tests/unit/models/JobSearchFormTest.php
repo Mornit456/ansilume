@@ -1,0 +1,97 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\tests\unit\models;
+
+use app\models\Job;
+use app\models\JobSearchForm;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Tests for JobSearchForm validation.
+ * Extends yii\base\Model — no DB required for validation.
+ */
+class JobSearchFormTest extends TestCase
+{
+    public function testEmptyFormIsValid(): void
+    {
+        $form = new JobSearchForm();
+        $form->validate();
+        $this->assertFalse($form->hasErrors());
+    }
+
+    public function testValidStatusPassesValidation(): void
+    {
+        foreach (Job::statuses() as $status) {
+            $form = new JobSearchForm();
+            $form->status = $status;
+            $form->validate(['status']);
+            $this->assertFalse($form->hasErrors('status'), "Status '{$status}' should be valid");
+        }
+    }
+
+    public function testEmptyStatusPassesValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->status = '';
+        $form->validate(['status']);
+        $this->assertFalse($form->hasErrors('status'));
+    }
+
+    public function testInvalidStatusFailsValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->status = 'exploded';
+        $form->validate(['status']);
+        $this->assertTrue($form->hasErrors('status'));
+    }
+
+    public function testValidDateFromPassesValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->date_from = '2025-01-15';
+        $form->validate(['date_from']);
+        $this->assertFalse($form->hasErrors('date_from'));
+    }
+
+    public function testInvalidDateFromFailsValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->date_from = 'not-a-date';
+        $form->validate(['date_from']);
+        $this->assertTrue($form->hasErrors('date_from'));
+    }
+
+    public function testValidDateToPassesValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->date_to = '2025-12-31';
+        $form->validate(['date_to']);
+        $this->assertFalse($form->hasErrors('date_to'));
+    }
+
+    public function testInvalidDateToFailsValidation(): void
+    {
+        $form = new JobSearchForm();
+        $form->date_to = '31/12/2025';
+        $form->validate(['date_to']);
+        $this->assertTrue($form->hasErrors('date_to'));
+    }
+
+    public function testTemplateIdAcceptsInteger(): void
+    {
+        $form = new JobSearchForm();
+        $form->template_id = 42;
+        $form->validate(['template_id']);
+        $this->assertFalse($form->hasErrors('template_id'));
+    }
+
+    public function testLaunchedByAcceptsInteger(): void
+    {
+        $form = new JobSearchForm();
+        $form->launched_by = 7;
+        $form->validate(['launched_by']);
+        $this->assertFalse($form->hasErrors('launched_by'));
+    }
+}

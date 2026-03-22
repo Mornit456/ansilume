@@ -107,13 +107,13 @@ class JobClaimService extends Component
         ];
     }
 
-    private function resolveProjectPath(array $payload): string
+    protected function resolveProjectPath(array $payload): string
     {
         $project = Project::findOne($payload['project_id'] ?? 0);
         return $project?->local_path ?? '/tmp/ansilume/projects';
     }
 
-    private function resolveInventory(array $payload): array
+    protected function resolveInventory(array $payload): array
     {
         $inventory = Inventory::findOne($payload['inventory_id'] ?? 0);
         if ($inventory === null) {

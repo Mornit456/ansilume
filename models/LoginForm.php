@@ -51,7 +51,7 @@ class LoginForm extends Model
         return false;
     }
 
-    private function getUser(): ?User
+    protected function getUser(): ?User
     {
         if ($this->_user === null) {
             $this->_user = User::findByUsername($this->username);
