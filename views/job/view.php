@@ -169,7 +169,13 @@ foreach ($tasks as $t) { $counts[$t->status] = ($counts[$t->status] ?? 0) + 1; }
 <script src="/js/ansi_up.min.js"></script>
 <script>
 var _au    = new AnsiUp();
-_au.use_classes = true;
+_au.use_classes = false;
+// Remap the dim 8-color palette entries that are unreadable on a dark
+// background. Index layout: ansi_colors[0] = normal, [1] = bright.
+// Normal blue (34) is rgb(0,0,187) — near-black on #1e1e1e.
+_au.ansi_colors[0][0].rgb = [118, 118, 118]; // black  → visible grey
+_au.ansi_colors[0][4].rgb = [77,  159, 236]; // blue   → readable blue
+_au.ansi_colors[0][5].rgb = [198, 120, 221]; // magenta → softer purple
 var logEl  = document.getElementById('job-log');
 
 function appendAnsi(text) {
