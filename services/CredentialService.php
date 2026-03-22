@@ -94,15 +94,16 @@ class CredentialService extends Component
         chmod($tmp, 0600);
 
         try {
-            // Extract public key
+            // Extract public key; -P "" supplies empty passphrase so ssh-keygen
+            // never prompts interactively (no TTY available in the web process).
             $pubOut  = [];
             $pubKey  = '';
-            $this->runCommand(['ssh-keygen', '-y', '-f', $tmp], $pubOut);
+            $this->runCommand(['ssh-keygen', '-y', '-P', '', '-f', $tmp], $pubOut);
             $pubKey = trim(implode('', $pubOut));
 
             // Get fingerprint/type line: "256 SHA256:xxx label (ED25519)"
             $infoOut = [];
-            $this->runCommand(['ssh-keygen', '-l', '-f', $tmp], $infoOut);
+            $this->runCommand(['ssh-keygen', '-l', '-P', '', '-f', $tmp], $infoOut);
             $info = trim(implode('', $infoOut));
 
             $bits      = 0;
