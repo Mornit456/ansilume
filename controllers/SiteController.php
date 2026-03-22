@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\models\Job;
+use app\models\JobHostSummary;
 use app\models\JobTemplate;
 use app\models\LoginForm;
 use app\models\Project;
@@ -18,8 +19,8 @@ class SiteController extends BaseController
     protected function accessRules(): array
     {
         return [
-            ['actions' => ['login', 'error'], 'allow' => true],
-            ['actions' => ['index', 'logout'], 'allow' => true, 'roles' => ['@']],
+            ['actions' => ['login', 'error'],          'allow' => true],
+            ['actions' => ['index', 'logout', 'chart-data'], 'allow' => true, 'roles' => ['@']],
         ];
     }
 
@@ -39,18 +40,6 @@ class SiteController extends BaseController
             'running'    => Job::find()->where(['status' => Job::STATUS_RUNNING])->count(),
             'jobs_today' => Job::find()->where(['>=', 'created_at', $today])->count(),
         ];
-
-        // Per-day job counts for the last 7 days (for the sparkline chart)
-        $dailyCounts = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $dayStart = strtotime("-{$i} days", $today);
-            $dayEnd   = $dayStart + 86399;
-            $dailyCounts[] = [
-                'date'      => date('D', $dayStart),
-                'succeeded' => (int)Job::find()->where(['status' => Job::STATUS_SUCCEEDED])->andWhere(['between', 'created_at', $dayStart, $dayEnd])->count(),
-                'failed'    => (int)Job::find()->where(['status' => Job::STATUS_FAILED])->andWhere(['between', 'created_at', $dayStart, $dayEnd])->count(),
-            ];
-        }
 
         // Status breakdown for the last 7 days
         $statusCounts = [];
@@ -84,13 +73,71 @@ class SiteController extends BaseController
 
         return $this->render('index', [
             'stats'         => $stats,
-            'dailyCounts'   => $dailyCounts,
             'statusCounts'  => $statusCounts,
             'recentJobs'    => $recentJobs,
             'runningJobs'   => $runningJobs,
             'templates'     => $templates,
             'onlineRunners' => $onlineRunners,
             'totalRunners'  => $totalRunners,
+        ]);
+    }
+
+    /**
+     * GET /site/chart-data?days=30
+     * Returns daily aggregated job outcomes + host recap totals for dashboard charts.
+     */
+    public function actionChartData(int $days = 30): Response
+    {
+        \Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $days  = max(7, min(365, $days));
+        $today = mktime(0, 0, 0, (int)date('n'), (int)date('j'), (int)date('Y'));
+
+        $labels      = [];
+        $jobOk       = [];
+        $jobFailed   = [];
+        $taskOk      = [];
+        $taskChanged = [];
+        $taskFailed  = [];
+        $taskUnreach = [];
+        $taskSkipped = [];
+
+        $db = \Yii::$app->db;
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $dayStart = strtotime("-{$i} days", $today);
+            $dayEnd   = $dayStart + 86399;
+
+            $labels[] = date('d.m.', $dayStart);
+
+            // Job outcomes
+            $jobOk[]     = (int)Job::find()->where(['status' => Job::STATUS_SUCCEEDED])->andWhere(['between', 'finished_at', $dayStart, $dayEnd])->count();
+            $jobFailed[] = (int)Job::find()->where(['status' => Job::STATUS_FAILED])->andWhere(['between', 'finished_at', $dayStart, $dayEnd])->count();
+
+            // Host recap sums: join job_host_summary → job to get finished_at date
+            $row = $db->createCommand('
+                SELECT
+                    COALESCE(SUM(s.ok), 0)          AS ok,
+                    COALESCE(SUM(s.changed), 0)     AS changed,
+                    COALESCE(SUM(s.failed), 0)      AS failed,
+                    COALESCE(SUM(s.unreachable), 0) AS unreachable,
+                    COALESCE(SUM(s.skipped), 0)     AS skipped
+                FROM {{%job_host_summary}} s
+                JOIN {{%job}} j ON j.id = s.job_id
+                WHERE j.finished_at BETWEEN :ds AND :de
+            ', [':ds' => $dayStart, ':de' => $dayEnd])->queryOne();
+
+            $taskOk[]      = (int)($row['ok']          ?? 0);
+            $taskChanged[] = (int)($row['changed']      ?? 0);
+            $taskFailed[]  = (int)($row['failed']       ?? 0);
+            $taskUnreach[] = (int)($row['unreachable']  ?? 0);
+            $taskSkipped[] = (int)($row['skipped']      ?? 0);
+        }
+
+        return $this->asJson([
+            'labels'      => $labels,
+            'jobs'        => ['ok' => $jobOk,    'failed' => $jobFailed],
+            'tasks'       => ['ok' => $taskOk,   'changed' => $taskChanged, 'failed' => $taskFailed, 'unreachable' => $taskUnreach, 'skipped' => $taskSkipped],
         ]);
     }
 

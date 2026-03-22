@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 /** @var yii\web\View $this */
 /** @var array $stats */
-/** @var array $dailyCounts      7-day per-day counts: [{date, succeeded, failed}] */
 /** @var array $statusCounts     Status → count for last 7 days */
 /** @var app\models\Job[] $recentJobs */
 /** @var app\models\Job[] $runningJobs */
@@ -59,69 +58,59 @@ $this->title = 'Dashboard';
     </div>
 </div>
 
+<!-- Charts -->
 <div class="row g-3 mb-4">
-    <!-- 7-day sparkline -->
-    <div class="col-lg-8">
+    <div class="col-lg-6">
         <div class="card h-100">
-            <div class="card-header">Jobs — last 7 days</div>
-            <div class="card-body">
-                <?php
-                $maxVal = max(1, max(array_map(fn($d) => $d['succeeded'] + $d['failed'], $dailyCounts)));
-                $chartH = 60;
-                $barW   = 28;
-                $gap    = 6;
-                $totalW = count($dailyCounts) * ($barW + $gap);
-                ?>
-                <svg viewBox="0 0 <?= $totalW ?> <?= $chartH + 24 ?>" style="width:100%;max-width:420px;overflow:visible">
-                    <?php foreach ($dailyCounts as $i => $day):
-                        $x        = $i * ($barW + $gap);
-                        $succH    = (int)round($day['succeeded'] / $maxVal * $chartH);
-                        $failH    = (int)round($day['failed']    / $maxVal * $chartH);
-                        $totalH   = $succH + $failH;
-                    ?>
-                        <?php if ($succH > 0): ?>
-                        <rect x="<?= $x ?>" y="<?= $chartH - $totalH ?>" width="<?= $barW ?>" height="<?= $succH ?>" fill="#198754" rx="2"/>
-                        <?php endif; ?>
-                        <?php if ($failH > 0): ?>
-                        <rect x="<?= $x ?>" y="<?= $chartH - $failH ?>" width="<?= $barW ?>" height="<?= $failH ?>" fill="#dc3545" rx="2"/>
-                        <?php endif; ?>
-                        <?php if ($totalH === 0): ?>
-                        <rect x="<?= $x ?>" y="<?= $chartH - 2 ?>" width="<?= $barW ?>" height="2" fill="#dee2e6" rx="1"/>
-                        <?php endif; ?>
-                        <text x="<?= $x + $barW / 2 ?>" y="<?= $chartH + 14 ?>" text-anchor="middle" font-size="9" fill="#6c757d"><?= Html::encode($day['date']) ?></text>
-                    <?php endforeach; ?>
-                </svg>
-                <div class="mt-2 small">
-                    <span class="me-3"><span style="display:inline-block;width:12px;height:12px;background:#198754;border-radius:2px"></span> Succeeded</span>
-                    <span><span style="display:inline-block;width:12px;height:12px;background:#dc3545;border-radius:2px"></span> Failed</span>
-                </div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Job Outcomes</span>
+                <select id="chart-range" class="form-select form-select-sm w-auto">
+                    <option value="7">7 days</option>
+                    <option value="30" selected>30 days</option>
+                    <option value="90">90 days</option>
+                </select>
+            </div>
+            <div class="card-body" style="position:relative;height:220px;">
+                <canvas id="chart-jobs"></canvas>
             </div>
         </div>
     </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Task Recap (PLAY RECAP)</div>
+            <div class="card-body" style="position:relative;height:220px;">
+                <canvas id="chart-tasks"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Quick Launch + Status summary -->
-    <div class="col-lg-4">
-        <div class="card mb-3">
+<!-- Quick Launch + Status summary -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card">
             <div class="card-header">Quick Launch</div>
             <div class="card-body">
                 <?php if (empty($templates)): ?>
                     <p class="text-muted mb-0 small">No templates yet.</p>
                 <?php else: ?>
-                    <form action="<?= Url::to(['/job-template/launch']) ?>" method="post" id="quick-launch-form">
+                    <form action="<?= Url::to(['/job-template/launch']) ?>" method="post">
                         <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
                         <div class="d-flex gap-2">
-                            <select id="quick-launch-id" name="id" class="form-select form-select-sm" required>
+                            <select name="id" class="form-select form-select-sm" required>
                                 <option value="">— Select template —</option>
                                 <?php foreach ($templates as $t): ?>
-                                    <option value="<?= $t->id ?>"><?= Html::encode($t->name) ?> (<?= $t->id ?>)</option>
+                                    <option value="<?= $t->id ?>"><?= Html::encode($t->name) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <button type="submit" class="btn btn-sm btn-success">Launch</button>
+                            <button type="submit" class="btn btn-sm btn-success text-nowrap">Launch</button>
                         </div>
                     </form>
                 <?php endif; ?>
             </div>
         </div>
+    </div>
+    <div class="col-lg-4">
         <div class="card">
             <div class="card-header">Status (7 days)</div>
             <div class="card-body p-0">
@@ -154,7 +143,7 @@ $this->title = 'Dashboard';
     <div class="card-body p-0">
         <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
-                <tr><th>#</th><th>Template</th><th>Launched by</th><th>Worker</th><th>Started</th><th>Running for</th></tr>
+                <tr><th>#</th><th>Template</th><th>Launched by</th><th>Runner</th><th>Started</th><th>Running for</th></tr>
             </thead>
             <tbody>
             <?php foreach ($runningJobs as $job): ?>
@@ -185,7 +174,7 @@ $this->title = 'Dashboard';
         <?php else: ?>
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
-                    <tr><th>#</th><th>Template</th><th>Status</th><th>Launched by</th><th>Worker</th><th>Started</th><th>Duration</th></tr>
+                    <tr><th>#</th><th>Template</th><th>Status</th><th>Launched by</th><th>Runner</th><th>Started</th><th>Duration</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($recentJobs as $job): ?>
@@ -220,3 +209,80 @@ $this->title = 'Dashboard';
         <?php endif; ?>
     </div>
 </div>
+
+<script src="/js/chart.min.js"></script>
+<script>
+(function () {
+    var chartDataUrl = <?= json_encode(Url::to(['/site/chart-data'])) ?>;
+
+    Chart.defaults.color = '#8a9099';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+
+    var jobChart  = null;
+    var taskChart = null;
+
+    function buildJobChart(labels, data) {
+        var ctx = document.getElementById('chart-jobs').getContext('2d');
+        if (jobChart) jobChart.destroy();
+        jobChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Succeeded', data: data.ok,     backgroundColor: '#198754', stack: 'jobs' },
+                    { label: 'Failed',    data: data.failed,  backgroundColor: '#dc3545', stack: 'jobs' },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } } },
+                scales: {
+                    x: { stacked: true, ticks: { maxRotation: 45 } },
+                    y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    function buildTaskChart(labels, data) {
+        var ctx = document.getElementById('chart-tasks').getContext('2d');
+        if (taskChart) taskChart.destroy();
+        taskChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'ok',          data: data.ok,          backgroundColor: '#198754', stack: 'tasks' },
+                    { label: 'changed',     data: data.changed,     backgroundColor: '#ffc107', stack: 'tasks' },
+                    { label: 'failed',      data: data.failed,      backgroundColor: '#dc3545', stack: 'tasks' },
+                    { label: 'unreachable', data: data.unreachable, backgroundColor: '#343a40', stack: 'tasks' },
+                    { label: 'skipped',     data: data.skipped,     backgroundColor: '#6c757d', stack: 'tasks' },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } } },
+                scales: {
+                    x: { stacked: true, ticks: { maxRotation: 45 } },
+                    y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    function loadCharts(days) {
+        fetch(chartDataUrl + '?days=' + days)
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                buildJobChart(d.labels, d.jobs);
+                buildTaskChart(d.labels, d.tasks);
+            });
+    }
+
+    loadCharts(30);
+
+    document.getElementById('chart-range').addEventListener('change', function () {
+        loadCharts(parseInt(this.value));
+    });
+})();
+</script>

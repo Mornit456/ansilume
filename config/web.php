@@ -158,6 +158,8 @@ $config = [
                 'runner/create'                   => 'runner/create',
                 'runner/delete/<id:\d+>'          => 'runner/delete',
                 'runner/regenerate-token/<id:\d+>' => 'runner/regenerate-token',
+                // Dashboard chart data
+                'site/chart-data' => 'site/chart-data',
                 // Health check
                 'health' => 'health/index',
                 // Inbound trigger
