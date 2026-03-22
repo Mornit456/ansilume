@@ -53,7 +53,10 @@ $this->title = Html::encode($model->name);
                     </dd>
 
                     <dt class="col-sm-4">Cron expression</dt>
-                    <dd class="col-sm-8"><code><?= Html::encode($model->cron_expression) ?></code></dd>
+                    <dd class="col-sm-8">
+                        <code id="cron-expr"><?= Html::encode($model->cron_expression) ?></code>
+                        <span id="cron-human" class="text-muted ms-2 small"></span>
+                    </dd>
 
                     <dt class="col-sm-4">Timezone</dt>
                     <dd class="col-sm-8"><?= Html::encode($model->timezone) ?></dd>
@@ -77,6 +80,18 @@ $this->title = Html::encode($model->name);
             </div>
         </div>
     </div>
+
+    <script src="/js/cronstrue.min.js"></script>
+    <script>
+    (function () {
+        var expr = document.getElementById('cron-expr');
+        var human = document.getElementById('cron-human');
+        if (!expr || !human || typeof cronstrue === 'undefined') return;
+        try {
+            human.textContent = '(' + cronstrue.toString(expr.textContent.trim(), { use24HourTimeFormat: true }) + ')';
+        } catch (e) {}
+    })();
+    </script>
 
     <?php if (!empty($model->extra_vars)): ?>
     <div class="col-md-6">
