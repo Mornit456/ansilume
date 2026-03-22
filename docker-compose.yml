@@ -86,6 +86,23 @@ services:
     networks:
       - ansilume
 
+  schedule-runner:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ansilume_schedule_runner
+    restart: unless-stopped
+    working_dir: /var/www
+    command: ["/bin/sh", "-c", "while true; do php yii schedule/run; sleep 60; done"]
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ansilume
+
   queue-worker:
     build:
       context: .
