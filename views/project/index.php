@@ -60,15 +60,15 @@ $this->title = 'Projects';
                     <td><?= $model->last_synced_at ? date('Y-m-d H:i', $model->last_synced_at) : '—' ?></td>
                     <td><?= Html::encode($model->creator->username ?? '—') ?></td>
                     <td class="text-end text-nowrap">
-                        <?= Html::a('View', ['view', 'id' => $model->id], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
                         <?php if (\Yii::$app->user->can('project.update') && $model->scm_type === Project::SCM_TYPE_GIT): ?>
-                            <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-sm btn-outline-secondary ms-1']) ?>
                             <form method="post" action="<?= Url::to(['sync', 'id' => $model->id]) ?>" style="display:inline">
                                 <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
-                                <button type="submit" class="btn btn-sm btn-outline-primary ms-1"
+                                <button type="submit" class="btn btn-sm btn-outline-primary"
                                         <?= $model->status === Project::STATUS_SYNCING ? 'disabled' : '' ?>>Sync</button>
                             </form>
-                        <?php elseif (\Yii::$app->user->can('project.update')): ?>
+                        <?php endif; ?>
+                        <?= Html::a('View', ['view', 'id' => $model->id], ['class' => 'btn btn-sm btn-outline-secondary ms-1']) ?>
+                        <?php if (\Yii::$app->user->can('project.update')): ?>
                             <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-sm btn-outline-secondary ms-1']) ?>
                         <?php endif; ?>
                     </td>
