@@ -188,6 +188,43 @@ else
 fi
 
 # =============================================================================
+# 6b. Migrations: end-to-end run on a clean database
+# =============================================================================
+section "Migrations (end-to-end)"
+
+if [[ $FAST -eq 1 ]]; then
+    skip "Migration run (--fast mode)"
+elif [[ $DOCKER_AVAILABLE -eq 1 ]]; then
+    # We need the DB root password to drop/recreate the scratch DB.
+    DB_ROOT_PWD="${DB_ROOT_PASSWORD:-rootsecret}"
+    SCRATCH_DB="ansilume_migrate_test"
+
+    # Create (or reset) a clean scratch database.
+    SETUP_SQL="DROP DATABASE IF EXISTS \`${SCRATCH_DB}\`; CREATE DATABASE \`${SCRATCH_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON \`${SCRATCH_DB}\`.* TO '${DB_USER:-ansilume}'@'%'; FLUSH PRIVILEGES;"
+
+    if docker compose exec -T db mariadb -uroot -p"${DB_ROOT_PWD}" -e "${SETUP_SQL}" 2>/dev/null; then
+        MIGRATE_OUT=$(docker compose exec -T app bash -c \
+            "DB_NAME=${SCRATCH_DB} php yii migrate --interactive=0 2>&1" || true)
+
+        if echo "$MIGRATE_OUT" | grep -q "Migrated up successfully\|No new migrations found"; then
+            MIGRATION_COUNT=$(echo "$MIGRATE_OUT" | grep -cP '^\*\*\* applied' || true)
+            ok "All migrations applied cleanly on a fresh schema (${MIGRATION_COUNT} migrations)"
+        else
+            fail "Migrations failed on a fresh schema"
+            echo "$MIGRATE_OUT" | tail -30 | sed 's/^/     /'
+        fi
+
+        # Drop the scratch DB when done.
+        docker compose exec -T db mariadb -uroot -p"${DB_ROOT_PWD}" \
+            -e "DROP DATABASE IF EXISTS \`${SCRATCH_DB}\`;" 2>/dev/null || true
+    else
+        skip "Migration end-to-end test (cannot connect to DB container as root)"
+    fi
+else
+    skip "Migration end-to-end test (Docker not available)"
+fi
+
+# =============================================================================
 # 7. Composer validation
 # =============================================================================
 section "Composer"

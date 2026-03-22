@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\jobs;
 
+use app\jobs\JobTimeoutException;
 use app\models\Job;
 use app\models\JobLog;
 use app\models\JobTask;
@@ -46,6 +47,10 @@ class RunAnsibleJob extends BaseObject implements JobInterface
         try {
             $exitCode = $this->runPlaybook($job);
             $this->transitionToFinished($job, $exitCode);
+        } catch (JobTimeoutException $e) {
+            \Yii::warning("RunAnsibleJob: job #{$job->id} timed out after {$e->getTimeoutMinutes()} minutes.", __CLASS__);
+            $this->appendLog($job, JobLog::STREAM_STDERR, "\n[ansilume] Job timed out after {$e->getTimeoutMinutes()} minutes and was terminated.");
+            $this->transitionToTimedOut($job);
         } catch (\Throwable $e) {
             \Yii::error("RunAnsibleJob: job #{$job->id} threw exception: " . $e->getMessage(), __CLASS__);
             $this->appendLog($job, JobLog::STREAM_STDERR, 'Runner error: ' . $e->getMessage());
@@ -106,6 +111,30 @@ class RunAnsibleJob extends BaseObject implements JobInterface
         $this->transitionToFinished($job, $exitCode);
     }
 
+    private function transitionToTimedOut(Job $job): void
+    {
+        $job->exit_code   = -1;
+        $job->finished_at = time();
+        $job->status      = Job::STATUS_TIMED_OUT;
+        $job->save(false);
+
+        \Yii::$app->get('auditService')->log(
+            AuditService::ACTION_JOB_FINISHED,
+            'job',
+            $job->id,
+            null,
+            ['exit_code' => -1, 'status' => Job::STATUS_TIMED_OUT]
+        );
+
+        /** @var WebhookService $ws */
+        $ws = \Yii::$app->get('webhookService');
+        $ws->dispatch(Webhook::EVENT_JOB_FAILURE, $job);
+
+        /** @var NotificationService $ns */
+        $ns = \Yii::$app->get('notificationService');
+        $ns->notifyJobFailed($job);
+    }
+
     /**
      * Execute ansible-playbook as a subprocess.
      * Returns the process exit code.
@@ -142,15 +171,39 @@ class RunAnsibleJob extends BaseObject implements JobInterface
 
         fclose($pipes[0]);
 
-        $sequence = 0;
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        $timeoutMinutes = (int)($payload['timeout_minutes'] ?? 120);
+        $deadline       = time() + ($timeoutMinutes * 60);
+        $sequence       = 0;
+        $timedOut       = false;
+
         while (!feof($pipes[1]) || !feof($pipes[2])) {
-            $stdout = fread($pipes[1], 4096);
-            if ($stdout !== false && $stdout !== '') {
-                $this->appendLog($job, JobLog::STREAM_STDOUT, $stdout, $sequence++);
+            $remaining = $deadline - time();
+            if ($remaining <= 0) {
+                proc_terminate($process, 15);
+                sleep(3);
+                proc_terminate($process, 9);
+                $timedOut = true;
+                break;
             }
-            $stderr = fread($pipes[2], 4096);
-            if ($stderr !== false && $stderr !== '') {
-                $this->appendLog($job, JobLog::STREAM_STDERR, $stderr, $sequence++);
+
+            $read    = array_filter([$pipes[1], $pipes[2]], fn($p) => is_resource($p) && !feof($p));
+            $write   = null;
+            $except  = null;
+            $changed = stream_select($read, $write, $except, min($remaining, 5));
+
+            if ($changed === false || $changed === 0) {
+                continue;
+            }
+
+            foreach ($read as $stream) {
+                $chunk = fread($stream, 4096);
+                if ($chunk !== false && $chunk !== '') {
+                    $streamName = ($stream === $pipes[1]) ? JobLog::STREAM_STDOUT : JobLog::STREAM_STDERR;
+                    $this->appendLog($job, $streamName, $chunk, $sequence++);
+                }
             }
         }
 
@@ -160,6 +213,10 @@ class RunAnsibleJob extends BaseObject implements JobInterface
         $exitCode = proc_close($process);
         $job->pid = null;
         $job->save(false);
+
+        if ($timedOut) {
+            throw new JobTimeoutException($timeoutMinutes);
+        }
 
         $this->saveTaskResults($job, $callbackFile);
 

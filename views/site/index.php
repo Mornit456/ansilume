@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /** @var yii\web\View $this */
-/** @var array $stats */
+/** @var array $stats  keys: projects, queued, running, jobs_today */
 /** @var array $statusCounts     Status → count for last 7 days */
 /** @var app\models\Job[] $recentJobs */
 /** @var app\models\Job[] $runningJobs */
@@ -29,10 +29,10 @@ $this->title = 'Dashboard';
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card text-bg-secondary h-100">
+        <div class="card <?= $stats['queued'] > 0 ? 'text-bg-warning' : 'text-bg-secondary' ?> h-100">
             <div class="card-body">
-                <div class="fs-2 fw-bold"><?= $stats['templates'] ?></div>
-                <div><?= Html::a('Templates', Url::to(['/job-template/index']), ['class' => 'text-white text-decoration-none']) ?></div>
+                <div class="fs-2 fw-bold"><?= $stats['queued'] // xss-ok: integer ?></div>
+                <div><?= Html::a('Queued', Url::to(['/job/index', 'status' => Job::STATUS_QUEUED]), ['class' => 'text-white text-decoration-none']) ?></div>
             </div>
         </div>
     </div>

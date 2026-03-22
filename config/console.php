@@ -60,6 +60,9 @@ return [
         'notificationService' => [
             'class' => 'app\services\NotificationService',
         ],
+        'lintService' => [
+            'class' => 'app\services\LintService',
+        ],
         'jobLaunchService' => [
             'class' => 'app\services\JobLaunchService',
         ],

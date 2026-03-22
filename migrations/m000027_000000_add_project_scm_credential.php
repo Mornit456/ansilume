@@ -8,7 +8,7 @@ class m000027_000000_add_project_scm_credential extends Migration
 {
     public function safeUp(): void
     {
-        $this->addColumn('{{%project}}', 'scm_credential_id', $this->integer()->null()->after('scm_branch'));
+        $this->addColumn('{{%project}}', 'scm_credential_id', $this->integer()->unsigned()->null()->after('scm_branch'));
         $this->addForeignKey(
             'fk_project_scm_credential',
             '{{%project}}', 'scm_credential_id',

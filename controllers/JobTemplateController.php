@@ -10,6 +10,7 @@ use app\models\JobTemplate;
 use app\models\Project;
 use app\models\RunnerGroup;
 use app\services\JobLaunchService;
+use app\services\LintService;
 use yii\data\ActiveDataProvider;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -56,11 +57,12 @@ class JobTemplateController extends BaseController
     public function actionCreate(?int $project_id = null, ?string $playbook = null): Response|string
     {
         $model = new JobTemplate();
-        $model->verbosity     = 0;
-        $model->forks         = 5;
-        $model->become        = false;
-        $model->become_method = 'sudo';
-        $model->become_user   = 'root';
+        $model->verbosity        = 0;
+        $model->forks            = 5;
+        $model->timeout_minutes  = 120;
+        $model->become           = false;
+        $model->become_method    = 'sudo';
+        $model->become_user      = 'root';
         if ($project_id !== null) {
             $model->project_id = $project_id;
         }
@@ -71,6 +73,9 @@ class JobTemplateController extends BaseController
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log('job-template.created', 'job-template', $model->id, null, ['name' => $model->name]);
+                /** @var \app\services\LintService $lintService */
+                $lintService = \Yii::$app->get('lintService');
+                $lintService->runForTemplate($model);
                 \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -83,6 +88,9 @@ class JobTemplateController extends BaseController
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
             \Yii::$app->get('auditService')->log('job-template.updated', 'job-template', $model->id, null, ['name' => $model->name]);
+            /** @var \app\services\LintService $lintService */
+            $lintService = \Yii::$app->get('lintService');
+            $lintService->runForTemplate($model);
             \Yii::$app->session->setFlash('success', "Template \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }

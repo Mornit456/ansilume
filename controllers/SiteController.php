@@ -36,7 +36,7 @@ class SiteController extends BaseController
 
         $stats = [
             'projects'   => Project::find()->count(),
-            'templates'  => JobTemplate::find()->count(),
+            'queued'     => Job::find()->where(['status' => Job::STATUS_QUEUED])->count(),
             'running'    => Job::find()->where(['status' => Job::STATUS_RUNNING])->count(),
             'jobs_today' => Job::find()->where(['>=', 'created_at', $today])->count(),
         ];

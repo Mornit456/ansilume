@@ -49,9 +49,11 @@ $this->title = $model->name;
                     <dt class="col-5">Credential</dt>
                     <dd class="col-7"><?= $model->credential ? Html::a(Html::encode($model->credential->name), ['/credential/view', 'id' => $model->credential_id]) : '<span class="text-muted">None</span>' ?></dd>
                     <dt class="col-5">Forks</dt>
-                    <dd class="col-7"><?= $model->forks ?></dd>
+                    <dd class="col-7"><?= $model->forks // xss-ok: integer ?></dd>
                     <dt class="col-5">Verbosity</dt>
-                    <dd class="col-7"><?= $model->verbosity ?></dd>
+                    <dd class="col-7"><?= $model->verbosity // xss-ok: integer ?></dd>
+                    <dt class="col-5">Timeout</dt>
+                    <dd class="col-7"><?= $model->timeout_minutes // xss-ok: integer ?> min</dd>
                     <?php if ($model->limit): ?><dt class="col-5">Limit</dt><dd class="col-7"><code><?= Html::encode($model->limit) ?></code></dd><?php endif; ?>
                     <?php if ($model->tags): ?><dt class="col-5">Tags</dt><dd class="col-7"><code><?= Html::encode($model->tags) ?></code></dd><?php endif; ?>
                     <?php if ($model->skip_tags): ?><dt class="col-5">Skip tags</dt><dd class="col-7"><code><?= Html::encode($model->skip_tags) ?></code></dd><?php endif; ?>
@@ -124,6 +126,37 @@ $this->title = $model->name;
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="col-12">
+        <div class="card">
+            <?php
+            $lintBadge = '';
+            if ($model->lint_exit_code === null) {
+                $lintBadge = '<span class="badge text-bg-secondary">not run</span>';
+            } elseif ($model->lint_exit_code === 0) {
+                $lintBadge = '<span class="badge text-bg-success">clean</span>';
+            } else {
+                $lintBadge = '<span class="badge text-bg-warning">issues found</span>';
+            }
+            ?>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Ansible Lint <small class="text-muted fw-normal">(--profile production)</small></span>
+                <span>
+                    <?= $lintBadge // xss-ok: hardcoded badge HTML ?>
+                    <?php if ($model->lint_at): ?>
+                        <small class="text-muted ms-2"><?= date('Y-m-d H:i', $model->lint_at) // xss-ok: date() output ?></small>
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <?php if ($model->lint_output): ?>
+                    <pre class="job-log m-0" style="max-height:300px;overflow-y:auto;"><?= Html::encode($model->lint_output) ?></pre>
+                <?php else: ?>
+                    <p class="text-muted p-3 mb-0">Lint output will appear here after saving the template or syncing the project.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
 
     <div class="col-12">
         <div class="card">

@@ -140,20 +140,20 @@ $active = fn(string $prefix): string =>
     <nav class="nav flex-column">
         <a class="nav-link<?= $active('job') // xss-ok: hardcoded CSS class ?>"          href="<?= Url::to(['/job/index']) ?>">Jobs</a>
         <?php if (\Yii::$app->user->can('job.launch')): ?>
-        <a class="nav-link<?= $active('schedule') ?>"     href="<?= Url::to(['/schedule/index']) ?>">Schedules</a>
+        <a class="nav-link<?= $active('schedule') // xss-ok: hardcoded CSS class ?>"     href="<?= Url::to(['/schedule/index']) ?>">Schedules</a>
         <?php endif; ?>
         <?php if (\Yii::$app->user->can('runner-group.view')): ?>
-        <a class="nav-link<?= $active('runner-group') ?>" href="<?= Url::to(['/runner-group/index']) ?>">Runners</a>
+        <a class="nav-link<?= $active('runner-group') // xss-ok: hardcoded CSS class ?>" href="<?= Url::to(['/runner-group/index']) ?>">Runners</a>
         <?php endif; ?>
     </nav>
 
     <?php if (\Yii::$app->user->can('user.view')): ?>
     <span class="nav-section">Admin</span>
     <nav class="nav flex-column">
-        <a class="nav-link<?= $active('user') ?>"      href="<?= Url::to(['/user/index']) ?>">Users</a>
-        <a class="nav-link<?= $active('team') ?>"      href="<?= Url::to(['/team/index']) ?>">Teams</a>
-        <a class="nav-link<?= $active('audit-log') ?>" href="<?= Url::to(['/audit-log/index']) ?>">Audit Log</a>
-        <a class="nav-link<?= $active('webhook') ?>"   href="<?= Url::to(['/webhook/index']) ?>">Webhooks</a>
+        <a class="nav-link<?= $active('user') // xss-ok: hardcoded CSS class ?>"      href="<?= Url::to(['/user/index']) ?>">Users</a>
+        <a class="nav-link<?= $active('team') // xss-ok: hardcoded CSS class ?>"      href="<?= Url::to(['/team/index']) ?>">Teams</a>
+        <a class="nav-link<?= $active('audit-log') // xss-ok: hardcoded CSS class ?>" href="<?= Url::to(['/audit-log/index']) ?>">Audit Log</a>
+        <a class="nav-link<?= $active('webhook') // xss-ok: hardcoded CSS class ?>"   href="<?= Url::to(['/webhook/index']) ?>">Webhooks</a>
     </nav>
     <?php endif; ?>
 
@@ -191,7 +191,7 @@ $active = fn(string $prefix): string =>
             <?php endforeach; ?>
         <?php endforeach; ?>
 
-        <?= $content ?>
+        <?= $content // xss-ok: Yii2 layout content — rendered view output, not user input ?>
     </div>
 </div>
 

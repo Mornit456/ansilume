@@ -24,11 +24,15 @@ use yii\db\ActiveRecord;
  * @property string|null $limit
  * @property string|null $tags
  * @property string|null $skip_tags
+ * @property int         $timeout_minutes   Timeout in minutes (default 120)
  * @property int|null    $runner_group_id
  * @property string|null $survey_fields     JSON array of SurveyField definitions
  * @property bool        $notify_on_failure
  * @property string|null $notify_emails     JSON array of email addresses
  * @property string|null $trigger_token     Hashed trigger token (bcrypt)
+ * @property string|null $lint_output       Last ansible-lint output
+ * @property int|null    $lint_at           Unix timestamp of last lint run
+ * @property int|null    $lint_exit_code    Exit code of last ansible-lint run (0 = clean)
  * @property int         $created_by
  * @property int         $created_at
  * @property int         $updated_at
@@ -55,7 +59,7 @@ class JobTemplate extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['name', 'project_id', 'inventory_id', 'playbook'], 'required'],
+            [['name', 'project_id', 'inventory_id', 'playbook', 'runner_group_id'], 'required'],
             [['name'], 'string', 'max' => 128],
             [['description'], 'string'],
             [['playbook'], 'string', 'max' => 512],
@@ -67,6 +71,7 @@ class JobTemplate extends ActiveRecord
             [['become_method'], 'in', 'range' => ['sudo', 'su', 'pbrun', 'pfexec', 'doas']],
             [['become_user'], 'string', 'max' => 64],
             [['limit'], 'string', 'max' => 255],
+            [['timeout_minutes'], 'integer', 'min' => 1, 'max' => 1440],
             [['tags', 'skip_tags'], 'string', 'max' => 512],
             [['survey_fields', 'notify_emails'], 'string'],
             [['survey_fields'], 'validateJson'],
@@ -74,6 +79,13 @@ class JobTemplate extends ActiveRecord
             [['notify_on_failure'], 'boolean'],
             [['trigger_token'], 'string', 'max' => 64],
             [['project_id', 'inventory_id', 'credential_id', 'runner_group_id', 'created_by'], 'integer'],
+        ];
+    }
+
+    public function attributeLabels(): array
+    {
+        return [
+            'runner_group_id' => 'Runner',
         ];
     }
 

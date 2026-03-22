@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     openssh-client \
     ansible \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    python3-pip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --break-system-packages ansible-lint
 
 RUN docker-php-ext-install \
     pdo_mysql \

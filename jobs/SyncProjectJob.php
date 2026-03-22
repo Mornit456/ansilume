@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace app\jobs;
 
+use app\models\JobTemplate;
 use app\models\Project;
+use app\services\LintService;
 use app\services\ProjectService;
 use yii\base\BaseObject;
 use yii\queue\JobInterface;
@@ -32,6 +34,12 @@ class SyncProjectJob extends BaseObject implements JobInterface
             $svc = \Yii::$app->get('projectService');
             $svc->sync($project);
             \Yii::info("SyncProjectJob: project #{$project->id} synced successfully.", __CLASS__);
+
+            /** @var LintService $lintSvc */
+            $lintSvc = \Yii::$app->get('lintService');
+            foreach (JobTemplate::find()->where(['project_id' => $project->id])->all() as $tpl) {
+                $lintSvc->runForTemplate($tpl);
+            }
         } catch (\RuntimeException $e) {
             \Yii::error("SyncProjectJob: project #{$project->id} sync failed: " . $e->getMessage(), __CLASS__);
         }

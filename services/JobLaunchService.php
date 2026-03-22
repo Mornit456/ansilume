@@ -88,6 +88,8 @@ class JobLaunchService extends Component
             $job->verbosity = (int)$overrides['verbosity'];
         }
 
+        $job->timeout_minutes = $template->timeout_minutes;
+
         // Snapshot runner payload for auditability
         $job->runner_payload = $this->buildRunnerPayload($template, $job);
 
@@ -145,8 +147,9 @@ class JobLaunchService extends Component
             'become'        => $template->become,
             'become_method' => $template->become_method,
             'become_user'   => $template->become_user,
-            'tags'          => $template->tags,
-            'skip_tags'     => $template->skip_tags,
+            'tags'            => $template->tags,
+            'skip_tags'       => $template->skip_tags,
+            'timeout_minutes' => $template->timeout_minutes,
         ], JSON_UNESCAPED_UNICODE);
     }
 }

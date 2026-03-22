@@ -10,7 +10,7 @@ class m000026_000000_add_job_host_summary extends Migration
     {
         $this->createTable('{{%job_host_summary}}', [
             'id'          => $this->primaryKey(),
-            'job_id'      => $this->integer()->notNull(),
+            'job_id'      => $this->integer()->unsigned()->notNull(),
             'host'        => $this->string(255)->notNull(),
             'ok'          => $this->integer()->notNull()->defaultValue(0),
             'changed'     => $this->integer()->notNull()->defaultValue(0),

@@ -18,6 +18,7 @@ use yii\db\ActiveRecord;
  * @property int|null    $queued_at
  * @property int|null    $started_at
  * @property int|null    $finished_at
+ * @property int|null    $timeout_minutes
  * @property int|null    $exit_code
  * @property int|null    $pid
  * @property string|null $worker_id
@@ -34,12 +35,13 @@ use yii\db\ActiveRecord;
  */
 class Job extends ActiveRecord
 {
-    public const STATUS_PENDING   = 'pending';
-    public const STATUS_QUEUED    = 'queued';
-    public const STATUS_RUNNING   = 'running';
-    public const STATUS_SUCCEEDED = 'succeeded';
-    public const STATUS_FAILED    = 'failed';
-    public const STATUS_CANCELED  = 'canceled';
+    public const STATUS_PENDING    = 'pending';
+    public const STATUS_QUEUED     = 'queued';
+    public const STATUS_RUNNING    = 'running';
+    public const STATUS_SUCCEEDED  = 'succeeded';
+    public const STATUS_FAILED     = 'failed';
+    public const STATUS_CANCELED   = 'canceled';
+    public const STATUS_TIMED_OUT  = 'timed_out';
 
     public static function tableName(): string
     {
@@ -83,6 +85,7 @@ class Job extends ActiveRecord
             self::STATUS_SUCCEEDED,
             self::STATUS_FAILED,
             self::STATUS_CANCELED,
+            self::STATUS_TIMED_OUT,
         ];
     }
 
@@ -92,6 +95,7 @@ class Job extends ActiveRecord
             self::STATUS_SUCCEEDED,
             self::STATUS_FAILED,
             self::STATUS_CANCELED,
+            self::STATUS_TIMED_OUT,
         ], true);
     }
 
@@ -118,6 +122,7 @@ class Job extends ActiveRecord
             self::STATUS_SUCCEEDED => 'Succeeded',
             self::STATUS_FAILED    => 'Failed',
             self::STATUS_CANCELED  => 'Canceled',
+            self::STATUS_TIMED_OUT => 'Timed Out',
             default                => $status,
         };
     }
@@ -130,6 +135,7 @@ class Job extends ActiveRecord
             self::STATUS_SUCCEEDED                    => 'success',
             self::STATUS_FAILED                       => 'danger',
             self::STATUS_CANCELED                     => 'warning',
+            self::STATUS_TIMED_OUT                    => 'danger',
             default                                   => 'secondary',
         };
     }

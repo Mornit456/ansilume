@@ -158,7 +158,7 @@ foreach ($tasks as $t) { $counts[$t->status] = ($counts[$t->status] ?? 0) + 1; }
         <span>Tasks (<?= count($tasks) ?>)</span>
         <span class="d-flex gap-2">
             <?php foreach ($counts as $s => $n): if ($n === 0) continue; ?>
-                <span class="badge text-bg-<?= JobTask::statusCssClass($s) // xss-ok: hardcoded CSS class from enum ?>"><?= $n // xss-ok: integer ?> <?= $s // xss-ok: DB enum value ?></span>
+                <span class="badge text-bg-<?= JobTask::statusCssClass($s) // xss-ok: hardcoded CSS class from enum ?>"><?= $n // xss-ok: integer ?> <?= Html::encode($s) ?></span>
             <?php endforeach; ?>
         </span>
     </div>
@@ -183,7 +183,7 @@ foreach ($tasks as $t) { $counts[$t->status] = ($counts[$t->status] ?? 0) + 1; }
                     <td><?= Html::encode($t->host) ?></td>
                     <td>
                         <span class="badge text-bg-<?= JobTask::statusCssClass($t->status) // xss-ok: hardcoded CSS class from enum ?>">
-                            <?= $t->status // xss-ok: DB enum value ?>
+                            <?= Html::encode($t->status) ?>
                         </span>
                     </td>
                     <td class="text-end text-nowrap">

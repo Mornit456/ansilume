@@ -107,6 +107,9 @@ $config = [
         'notificationService' => [
             'class' => 'app\services\NotificationService',
         ],
+        'lintService' => [
+            'class' => 'app\services\LintService',
+        ],
         'scheduleService' => [
             'class' => 'app\services\ScheduleService',
         ],

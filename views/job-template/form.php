@@ -63,8 +63,13 @@ $this->title = $model->isNewRecord ? 'New Job Template' : 'Edit: ' . $model->nam
         <div class="col-md-6">
             <?= $form->field($model, 'runner_group_id')->dropDownList(
                 ArrayHelper::map($runnerGroups, 'id', 'name'),
-                ['prompt' => '— Select runner group —']
+                ['prompt' => '— Select —']
             )->hint('Which group of runners should execute this job.') ?>
+        </div>
+        <div class="col-md-3">
+            <?= $form->field($model, 'timeout_minutes')->textInput([
+                'type' => 'number', 'min' => 1, 'max' => 1440,
+            ])->hint('Minutes before the job is killed (max 1440 = 24 h).') ?>
         </div>
     </div>
 
