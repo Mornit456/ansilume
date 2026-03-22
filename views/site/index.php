@@ -102,24 +102,18 @@ $this->title = 'Dashboard';
                 <?php if (empty($templates)): ?>
                     <p class="text-muted mb-0 small">No templates yet.</p>
                 <?php else: ?>
-                    <form action="<?= Url::to(['/job-template/launch', 'id' => 0]) ?>" method="get" id="quick-launch-form">
+                    <form action="<?= Url::to(['/job-template/launch']) ?>" method="post" id="quick-launch-form">
+                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
                         <div class="d-flex gap-2">
                             <select id="quick-launch-id" name="id" class="form-select form-select-sm" required>
                                 <option value="">— Select template —</option>
                                 <?php foreach ($templates as $t): ?>
-                                    <option value="<?= $t->id ?>"><?= Html::encode($t->name) ?></option>
+                                    <option value="<?= $t->id ?>"><?= Html::encode($t->name) ?> (<?= $t->id ?>)</option>
                                 <?php endforeach; ?>
                             </select>
                             <button type="submit" class="btn btn-sm btn-success">Launch</button>
                         </div>
                     </form>
-                    <script>
-                    document.getElementById('quick-launch-form').addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        const id = document.getElementById('quick-launch-id').value;
-                        if (id) window.location = '<?= Url::to(['/job-template/launch', 'id' => '']) ?>' + id;
-                    });
-                    </script>
                 <?php endif; ?>
             </div>
         </div>
