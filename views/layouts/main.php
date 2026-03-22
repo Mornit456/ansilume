@@ -16,7 +16,7 @@ $this->beginPage();
 $route = Yii::$app->requestedRoute ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,13 +25,14 @@ $route = Yii::$app->requestedRoute ?? '';
     <style>
         :root { --sidebar-width: 220px; }
 
-        body { background-color: #f0f2f5; }
+        body { background-color: #0f1117; }
 
         /* Sidebar */
         #sidebar {
             position: fixed; top: 0; left: 0; bottom: 0;
             width: var(--sidebar-width);
-            background: #1a1d21;
+            background: #13161b;
+            border-right: 1px solid rgba(255,255,255,.06);
             display: flex; flex-direction: column;
             z-index: 100;
             overflow-y: auto;
@@ -46,16 +47,16 @@ $route = Yii::$app->requestedRoute ?? '';
         #sidebar .sidebar-brand:hover { color: #fff; }
         #sidebar .nav-section {
             font-size: .68rem; font-weight: 600; text-transform: uppercase;
-            letter-spacing: .08em; color: #6c757d;
+            letter-spacing: .08em; color: #495057;
             padding: 1.1rem 1.2rem .3rem;
         }
         #sidebar .nav-link {
-            color: #adb5bd; padding: .45rem 1.2rem;
+            color: #8a9099; padding: .45rem 1.2rem;
             border-radius: 0; font-size: .9rem;
             display: flex; align-items: center; gap: .55rem;
         }
-        #sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.06); }
-        #sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.1); }
+        #sidebar .nav-link:hover { color: #e9ecef; background: rgba(255,255,255,.05); }
+        #sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,.09); }
         #sidebar .sidebar-footer {
             margin-top: auto;
             border-top: 1px solid rgba(255,255,255,.07);
@@ -82,10 +83,10 @@ $route = Yii::$app->requestedRoute ?? '';
             #sidebar-toggle { display: flex !important; }
         }
 
-        /* Top bar (mobile toggle + flash messages) */
+        /* Top bar (mobile toggle) */
         #topbar {
-            background: #fff;
-            border-bottom: 1px solid #dee2e6;
+            background: #13161b;
+            border-bottom: 1px solid rgba(255,255,255,.06);
             padding: .5rem 1.5rem;
             display: flex; align-items: center; gap: 1rem;
         }
