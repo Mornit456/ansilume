@@ -87,7 +87,7 @@ $this->title = 'Jobs';
             <thead class="table-light">
                 <tr>
                     <th>#</th><th>Template</th><th>Status</th>
-                    <th>Hosts</th>
+                    <th class="text-center">Hosts</th><th>Recap</th>
                     <th>Launched by</th><th>Queued</th><th>Started</th><th>Duration</th>
                 </tr>
             </thead>
@@ -101,11 +101,12 @@ $this->title = 'Jobs';
                             <?= Html::encode(Job::statusLabel($job->status)) ?>
                         </span>
                     </td>
+                    <?php $recap = JobHostSummary::aggregate($job->hostSummaries); ?>
+                    <td class="text-center">
+                        <?= $recap['hosts'] > 0 ? $recap['hosts'] : '<span class="text-muted">—</span>' ?>
+                    </td>
                     <td>
-                        <?php
-                        $recap = JobHostSummary::aggregate($job->hostSummaries);
-                        if ($recap['hosts'] > 0):
-                        ?>
+                        <?php if ($recap['hosts'] > 0): ?>
                         <span class="d-flex gap-1 flex-wrap" style="font-size:.7rem; line-height:1.6;">
                             <?php if ($recap['ok'] > 0): ?>
                                 <span class="badge text-bg-success"><?= $recap['ok'] ?> ok</span>
