@@ -96,26 +96,47 @@ class ProjectController extends BaseController
     private function detectPlaybooks(string $base): array
     {
         $playbooks = [];
-        $searchDirs = [$base];
-        if (is_dir($base . '/playbooks')) {
-            $searchDirs[] = $base . '/playbooks';
+
+        // Root-level YAML files
+        foreach (glob($base . '/*.{yml,yaml}', GLOB_BRACE) ?: [] as $file) {
+            if ($this->looksLikePlaybook($file)) {
+                $playbooks[] = basename($file);
+            }
         }
-        foreach ($searchDirs as $dir) {
-            foreach (glob($dir . '/*.{yml,yaml}', GLOB_BRACE) ?: [] as $file) {
-                $name = basename($file);
-                if ($name === '' || str_starts_with($name, '.')) {
+
+        // Recursively scan playbooks/ directory
+        if (is_dir($base . '/playbooks')) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($base . '/playbooks', \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
                     continue;
                 }
-                // Quick heuristic: file starts with "---", "- " or "- name:"
-                $head = file_get_contents($file, false, null, 0, 512);
-                if ($head !== false && preg_match('/^\s*(---\s*\n.*- |- )/s', $head)) {
-                    $rel = ($dir === $base) ? $name : 'playbooks/' . $name;
-                    $playbooks[] = $rel;
+                $ext = strtolower($file->getExtension());
+                if ($ext !== 'yml' && $ext !== 'yaml') {
+                    continue;
+                }
+                if ($this->looksLikePlaybook($file->getPathname())) {
+                    $playbooks[] = 'playbooks/' . ltrim(
+                        substr($file->getPathname(), strlen($base . '/playbooks')), '/'
+                    );
                 }
             }
         }
+
         sort($playbooks);
         return $playbooks;
+    }
+
+    private function looksLikePlaybook(string $path): bool
+    {
+        $name = basename($path);
+        if (str_starts_with($name, '.')) {
+            return false;
+        }
+        $head = file_get_contents($path, false, null, 0, 512);
+        return $head !== false && preg_match('/^\s*(---\s*\n.*- |- )/s', $head);
     }
 
     /**
