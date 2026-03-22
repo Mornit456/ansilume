@@ -100,6 +100,9 @@ $route = Yii::$app->requestedRoute ?? '';
         .has-error .form-control { border-color: #dc3545; }
         .has-error .control-label { color: #dc3545; }
         .has-success .form-control { border-color: #198754; }
+        /* Override Bootstrap's table-light which is unreadable in dark mode */
+        .table thead.table-light th,
+        .table thead.table-light td { background-color: #1e2128; color: #adb5bd; border-color: rgba(255,255,255,.08); }
     </style>
     <link rel="icon" href="/ansilume-logo.svg" type="image/svg+xml">
     <meta name="csrf-token" content="<?= \Yii::$app->request->getCsrfToken() ?>">
@@ -119,6 +122,10 @@ $active = fn(string $prefix): string => str_starts_with($route, $prefix) ? ' act
     </a>
 
     <?php if (!\Yii::$app->user->isGuest): ?>
+
+    <nav class="nav flex-column mt-1">
+        <a class="nav-link<?= $route === 'site/index' ? ' active' : '' ?>" href="<?= Url::to(['/']) ?>">Dashboard</a>
+    </nav>
 
     <span class="nav-section">Automation</span>
     <nav class="nav flex-column">
