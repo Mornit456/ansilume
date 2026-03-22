@@ -55,10 +55,10 @@ $this->title = 'Runner Groups';
                             <?= Html::a('Edit', ['update', 'id' => $group->id], ['class' => 'btn btn-sm btn-outline-secondary me-1']) ?>
                         <?php endif; ?>
                         <?php if (\Yii::$app->user->can('runner-group.delete')): ?>
-                            <?= Html::a('Delete', ['delete', 'id' => $group->id], [
-                                'class' => 'btn btn-sm btn-outline-danger',
-                                'data'  => ['method' => 'post', 'confirm' => 'Delete this runner group and all its runners?'],
-                            ]) ?>
+                            <form method="post" action="<?= Url::to(['delete', 'id' => $group->id]) ?>" style="display:inline" onsubmit="return confirm('Delete this runner group and all its runners?')">
+                                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>

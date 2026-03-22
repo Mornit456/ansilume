@@ -24,16 +24,16 @@ $this->title = $model->name;
     <div class="btn-group">
         <?php if (\Yii::$app->user->can('project.update')): ?>
             <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-outline-secondary']) ?>
-            <?= Html::a('Sync', ['sync', 'id' => $model->id], [
-                'class' => 'btn btn-outline-primary ms-1',
-                'data'  => ['method' => 'post', 'confirm' => 'Queue a sync for this project?'],
-            ]) ?>
+            <form method="post" action="<?= \yii\helpers\Url::to(['sync', 'id' => $model->id]) ?>" style="display:inline" onsubmit="return confirm('Queue a sync for this project?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-primary ms-1">Sync</button>
+            </form>
         <?php endif; ?>
         <?php if (\Yii::$app->user->can('project.delete')): ?>
-            <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-                'class' => 'btn btn-outline-danger ms-1',
-                'data'  => ['method' => 'post', 'confirm' => 'Delete this project?'],
-            ]) ?>
+            <form method="post" action="<?= \yii\helpers\Url::to(['delete', 'id' => $model->id]) ?>" style="display:inline" onsubmit="return confirm('Delete this project?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>

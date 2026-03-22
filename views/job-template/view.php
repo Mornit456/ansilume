@@ -26,10 +26,10 @@ $this->title = $model->name;
             <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-outline-secondary ms-1']) ?>
         <?php endif; ?>
         <?php if (\Yii::$app->user->can('job-template.delete')): ?>
-            <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-                'class' => 'btn btn-outline-danger ms-1',
-                'data'  => ['method' => 'post', 'confirm' => 'Delete this template?'],
-            ]) ?>
+            <form method="post" action="<?= \yii\helpers\Url::to(['delete', 'id' => $model->id]) ?>" style="display:inline" onsubmit="return confirm('Delete this template?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>
@@ -85,16 +85,15 @@ $this->title = $model->name;
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Inbound Trigger</span>
                 <?php if ($model->trigger_token): ?>
-                    <?= Html::a('Revoke Token', ['revoke-trigger-token', 'id' => $model->id], [
-                        'class' => 'btn btn-sm btn-outline-danger',
-                        'data-method' => 'post',
-                        'data-confirm' => 'Revoke the trigger token? Any existing integrations will stop working.',
-                    ]) ?>
+                    <form method="post" action="<?= \yii\helpers\Url::to(['revoke-trigger-token', 'id' => $model->id]) ?>" style="display:inline" onsubmit="return confirm('Revoke the trigger token? Any existing integrations will stop working.')">
+                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Revoke Token</button>
+                    </form>
                 <?php else: ?>
-                    <?= Html::a('Generate Token', ['generate-trigger-token', 'id' => $model->id], [
-                        'class' => 'btn btn-sm btn-outline-primary',
-                        'data-method' => 'post',
-                    ]) ?>
+                    <form method="post" action="<?= \yii\helpers\Url::to(['generate-trigger-token', 'id' => $model->id]) ?>" style="display:inline">
+                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Generate Token</button>
+                    </form>
                 <?php endif; ?>
             </div>
             <div class="card-body">

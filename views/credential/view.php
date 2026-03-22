@@ -24,10 +24,10 @@ $this->title = $model->name;
             <?= Html::a('Edit', ['update', 'id' => $model->id], ['class' => 'btn btn-outline-secondary']) ?>
         <?php endif; ?>
         <?php if (\Yii::$app->user->can('credential.delete')): ?>
-            <?= Html::a('Delete', ['delete', 'id' => $model->id], [
-                'class' => 'btn btn-outline-danger ms-1',
-                'data'  => ['method' => 'post', 'confirm' => 'Delete this credential?'],
-            ]) ?>
+            <form method="post" action="<?= \yii\helpers\Url::to(['delete', 'id' => $model->id]) ?>" style="display:inline" onsubmit="return confirm('Delete this credential?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>

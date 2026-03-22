@@ -26,15 +26,14 @@ $isSelf = ($user->id === (int)\Yii::$app->user->id);
             <?= Html::a('Edit', ['update', 'id' => $user->id], ['class' => 'btn btn-outline-secondary']) ?>
         <?php endif; ?>
         <?php if (!$isSelf && \Yii::$app->user->can('user.delete')): ?>
-            <?= Html::a(
-                $user->status === User::STATUS_ACTIVE ? 'Deactivate' : 'Activate',
-                ['toggle-status', 'id' => $user->id],
-                ['class' => 'btn btn-outline-warning ms-1', 'data' => ['method' => 'post', 'confirm' => 'Change status?']]
-            ) ?>
-            <?= Html::a('Delete', ['delete', 'id' => $user->id], [
-                'class' => 'btn btn-outline-danger ms-1',
-                'data'  => ['method' => 'post', 'confirm' => 'Permanently delete this user?'],
-            ]) ?>
+            <form method="post" action="<?= \yii\helpers\Url::to(['toggle-status', 'id' => $user->id]) ?>" style="display:inline" onsubmit="return confirm('Change status?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-warning ms-1"><?= $user->status === User::STATUS_ACTIVE ? 'Deactivate' : 'Activate' ?></button>
+            </form>
+            <form method="post" action="<?= \yii\helpers\Url::to(['delete', 'id' => $user->id]) ?>" style="display:inline" onsubmit="return confirm('Permanently delete this user?')">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="btn btn-outline-danger ms-1">Delete</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>

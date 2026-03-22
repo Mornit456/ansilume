@@ -166,10 +166,10 @@ $active = fn(string $prefix): string =>
         </div>
         <nav class="nav flex-column">
             <a class="nav-link" href="<?= Url::to(['/profile/tokens']) ?>">API Tokens</a>
-            <?= Html::a('Logout', ['/site/logout'], [
-                'class' => 'nav-link',
-                'data'  => ['method' => 'post'],
-            ]) ?>
+            <form method="post" action="<?= Url::to(['/site/logout']) ?>" style="display:contents">
+                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                <button type="submit" class="nav-link" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">Logout</button>
+            </form>
         </nav>
     </div>
 

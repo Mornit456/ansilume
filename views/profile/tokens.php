@@ -64,10 +64,10 @@ $this->title = 'API Tokens';
                     <?php endif; ?>
                 </td>
                 <td class="text-end">
-                    <?= Html::a('Revoke', ['/profile/delete-token', 'id' => $token->id], [
-                        'class' => 'btn btn-sm btn-outline-danger',
-                        'data'  => ['method' => 'post', 'confirm' => 'Revoke token "' . $token->name . '"?'],
-                    ]) ?>
+                    <form method="post" action="<?= \yii\helpers\Url::to(['/profile/delete-token', 'id' => $token->id]) ?>" style="display:inline" onsubmit="return confirm('Revoke token &quot;<?= addslashes(Html::encode($token->name)) ?>&quot;?')">
+                        <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                    </form>
                 </td>
             </tr>
         <?php endforeach; ?>

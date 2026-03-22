@@ -123,14 +123,14 @@ $tokenFlash = \Yii::$app->session->getFlash('runner_token');
                     <td class="text-muted small"><?= Html::encode($runner->description ?? '') ?></td>
                     <td class="text-end">
                         <?php if (\Yii::$app->user->can('runner-group.update')): ?>
-                            <?= Html::a('Regen Token', ['/runner/regenerate-token', 'id' => $runner->id], [
-                                'class' => 'btn btn-sm btn-outline-warning me-1',
-                                'data'  => ['method' => 'post', 'confirm' => 'Regenerate token for "' . $runner->name . '"? The old token will stop working immediately.'],
-                            ]) ?>
-                            <?= Html::a('Delete', ['/runner/delete', 'id' => $runner->id], [
-                                'class' => 'btn btn-sm btn-outline-danger',
-                                'data'  => ['method' => 'post', 'confirm' => 'Delete runner "' . $runner->name . '"?'],
-                            ]) ?>
+                            <form method="post" action="<?= Url::to(['/runner/regenerate-token', 'id' => $runner->id]) ?>" style="display:inline" onsubmit="return confirm('Regenerate token for &quot;<?= addslashes($runner->name) ?>&quot;? The old token will stop working immediately.')">
+                                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-warning me-1">Regen Token</button>
+                            </form>
+                            <form method="post" action="<?= Url::to(['/runner/delete', 'id' => $runner->id]) ?>" style="display:inline" onsubmit="return confirm('Delete runner &quot;<?= addslashes($runner->name) ?>&quot;?')">
+                                <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>
