@@ -168,25 +168,23 @@ foreach ($tasks as $t) { $counts[$t->status] = ($counts[$t->status] ?? 0) + 1; }
 
 <script src="/js/ansi_up.min.js"></script>
 <script>
-(function () {
-    var au     = new AnsiUp();
-    au.use_classes = false;
-    var logEl  = document.getElementById('job-log');
+var _au    = new AnsiUp();
+_au.use_classes = false;
+var logEl  = document.getElementById('job-log');
 
-    function appendAnsi(text) {
-        var span = document.createElement('span');
-        span.innerHTML = au.ansi_to_html(text);
-        logEl.appendChild(span);
-    }
+function appendAnsi(text) {
+    var span = document.createElement('span');
+    span.innerHTML = _au.ansi_to_html(text);
+    logEl.appendChild(span);
+}
 
-    <?php foreach ($logs as $logEntry): ?>
-    appendAnsi(<?= json_encode($logEntry->content) ?>);
-    <?php endforeach; ?>
+<?php foreach ($logs as $logEntry): ?>
+appendAnsi(<?= json_encode($logEntry->content) ?>);
+<?php endforeach; ?>
 
-    if (logEl.scrollHeight > logEl.clientHeight) {
-        logEl.scrollTop = logEl.scrollHeight;
-    }
-})();
+if (logEl.scrollHeight > logEl.clientHeight) {
+    logEl.scrollTop = logEl.scrollHeight;
+}
 </script>
 
 <?php if ($isLive): ?>
