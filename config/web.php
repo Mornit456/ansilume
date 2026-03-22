@@ -17,7 +17,7 @@ $config = [
         'api/v1/inventories'   => 'app\controllers\api\v1\InventoriesController',
         'api/v1/credentials'   => 'app\controllers\api\v1\CredentialsController',
         'api/v1/schedules'        => 'app\controllers\api\v1\SchedulesController',
-        'api/runner/v1/jobs'      => 'app\controllers\api\runner\JobsController',
+        'runner-api'              => 'app\controllers\api\runner\JobsController',
     ],
     'aliases'             => [
         '@bower' => '@vendor/bower-asset',
@@ -27,6 +27,9 @@ $config = [
         'request' => [
             'cookieValidationKey' => $_ENV['COOKIE_VALIDATION_KEY'] ?? '',
             'baseUrl'             => '',
+            'parsers'             => [
+                'application/json' => 'yii\web\JsonParser',
+            ],
         ],
         'cache' => [
             'class' => 'yii\redis\Cache',
@@ -144,11 +147,11 @@ $config = [
                 ['pattern' => 'api/v1/schedules/<id:\d+>',   'route' => 'api/v1/schedules/view'],
                 ['pattern' => 'api/v1/schedules',            'route' => 'api/v1/schedules/index'],
                 // Runner pull API
-                ['pattern' => 'api/runner/v1/heartbeat',              'route' => 'api/runner/v1/jobs/heartbeat', 'verb' => 'POST'],
-                ['pattern' => 'api/runner/v1/jobs/claim',              'route' => 'api/runner/v1/jobs/claim',     'verb' => 'POST'],
-                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/logs',      'route' => 'api/runner/v1/jobs/logs'],
-                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/complete',  'route' => 'api/runner/v1/jobs/complete'],
-                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/tasks',     'route' => 'api/runner/v1/jobs/tasks'],
+                ['pattern' => 'api/runner/v1/heartbeat',              'route' => 'runner-api/heartbeat', 'verb' => 'POST'],
+                ['pattern' => 'api/runner/v1/jobs/claim',              'route' => 'runner-api/claim',     'verb' => 'POST'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/logs',      'route' => 'runner-api/logs'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/complete',  'route' => 'runner-api/complete'],
+                ['pattern' => 'api/runner/v1/jobs/<id:\d+>/tasks',     'route' => 'runner-api/tasks'],
                 // Runner group UI
                 'runner-group/<action>'           => 'runner-group/<action>',
                 'runner-group/<action>/<id:\d+>'  => 'runner-group/<action>',
