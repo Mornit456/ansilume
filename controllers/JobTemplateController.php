@@ -53,7 +53,7 @@ class JobTemplateController extends BaseController
         return $this->render('view', ['model' => $this->findModel($id)]);
     }
 
-    public function actionCreate(?int $project_id = null): Response|string
+    public function actionCreate(?int $project_id = null, ?string $playbook = null): Response|string
     {
         $model = new JobTemplate();
         $model->verbosity     = 0;
@@ -63,6 +63,9 @@ class JobTemplateController extends BaseController
         $model->become_user   = 'root';
         if ($project_id !== null) {
             $model->project_id = $project_id;
+        }
+        if ($playbook !== null) {
+            $model->playbook = $playbook;
         }
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;

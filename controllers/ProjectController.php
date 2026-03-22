@@ -56,7 +56,72 @@ class ProjectController extends BaseController
         if (!$checker->canView(\Yii::$app->user->id, $model->id)) {
             throw new \yii\web\ForbiddenHttpException('You do not have access to this project.');
         }
-        return $this->render('view', ['model' => $model]);
+        $playbooks = [];
+        $tree      = [];
+        if ($model->local_path && is_dir($model->local_path)) {
+            $playbooks = $this->detectPlaybooks($model->local_path);
+            $tree      = $this->buildTree($model->local_path, $model->local_path, 0, 3);
+        }
+        return $this->render('view', ['model' => $model, 'playbooks' => $playbooks, 'tree' => $tree]);
+    }
+
+    /**
+     * Return root-level YAML files that look like playbooks
+     * (contain a top-level list, i.e. start with "---" or "- ").
+     */
+    private function detectPlaybooks(string $base): array
+    {
+        $playbooks = [];
+        foreach (glob($base . '/*.{yml,yaml}', GLOB_BRACE) ?: [] as $file) {
+            $name = basename($file);
+            if ($name === '' || str_starts_with($name, '.')) {
+                continue;
+            }
+            // Quick heuristic: file starts with "---", "- " or "- name:"
+            $head = file_get_contents($file, false, null, 0, 512);
+            if ($head !== false && preg_match('/^\s*(---\s*\n.*- |- )/s', $head)) {
+                $playbooks[] = $name;
+            }
+        }
+        sort($playbooks);
+        return $playbooks;
+    }
+
+    /**
+     * Recursively build a directory tree array, ignoring .git and hidden dirs.
+     * Each node: ['name' => string, 'type' => 'dir'|'file', 'children' => [...]]
+     */
+    private function buildTree(string $base, string $dir, int $depth, int $maxDepth): array
+    {
+        if ($depth >= $maxDepth) {
+            return [];
+        }
+        $nodes = [];
+        $items = scandir($dir) ?: [];
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..' || $item === '.git' || str_starts_with($item, '.')) {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            $rel  = ltrim(substr($path, strlen($base)), '/');
+            if (is_dir($path)) {
+                $nodes[] = [
+                    'name'     => $item,
+                    'rel'      => $rel,
+                    'type'     => 'dir',
+                    'children' => $this->buildTree($base, $path, $depth + 1, $maxDepth),
+                ];
+            } else {
+                $nodes[] = ['name' => $item, 'rel' => $rel, 'type' => 'file', 'children' => []];
+            }
+        }
+        // Dirs first, then files, both alphabetical
+        usort($nodes, fn($a, $b) =>
+            ($a['type'] === $b['type'])
+                ? strcmp($a['name'], $b['name'])
+                : ($a['type'] === 'dir' ? -1 : 1)
+        );
+        return $nodes;
     }
 
     public function actionCreate(): Response|string

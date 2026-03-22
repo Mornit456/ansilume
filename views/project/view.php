@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 /** @var yii\web\View $this */
 /** @var app\models\Project $model */
+/** @var string[] $playbooks  Detected root-level playbook files */
+/** @var array    $tree       Directory tree nodes */
 
 use app\models\Project;
 use yii\helpers\Html;
@@ -121,3 +123,55 @@ $this->title = $model->name;
         </div>
     </div>
 </div>
+
+<?php if (!empty($playbooks) || !empty($tree)): ?>
+<div class="row g-3 mt-1">
+
+    <?php if (!empty($playbooks)): ?>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Detected Playbooks</div>
+            <ul class="list-group list-group-flush">
+                <?php foreach ($playbooks as $pb): ?>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <code><?= Html::encode($pb) ?></code>
+                    <?php if (\Yii::$app->user->can('job-template.create')): ?>
+                        <?= Html::a('Create Template', ['/job-template/create', 'project_id' => $model->id, 'playbook' => $pb], ['class' => 'btn btn-sm btn-outline-success']) ?>
+                    <?php endif; ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($tree)): ?>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Repository Structure</div>
+            <div class="card-body p-2">
+                <pre class="mb-0 small" style="line-height:1.6;"><?php
+
+function renderTree(array $nodes, string $prefix = ''): void {
+    $last = count($nodes) - 1;
+    foreach ($nodes as $i => $node) {
+        $isLast     = ($i === $last);
+        $connector  = $isLast ? '└── ' : '├── ';
+        $childPfx   = $prefix . ($isLast ? '    ' : '│   ');
+        $icon       = $node['type'] === 'dir' ? '📁 ' : '';
+        echo Html::encode($prefix . $connector . $icon . $node['name']) . "\n";
+        if (!empty($node['children'])) {
+            renderTree($node['children'], $childPfx);
+        }
+    }
+}
+renderTree($tree);
+
+                ?></pre>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+</div>
+<?php endif; ?>
