@@ -10,6 +10,34 @@ Web-based Ansible automation platform. Manage inventories, credentials, projects
 
 ---
 
+## Screenshots
+
+**Dashboard** — job outcomes, quick launch, runner status at a glance
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Job detail** — per-task play recap with status, host, and duration
+
+![Job detail](docs/screenshots/job-details1.png)
+
+**Job output** — full Ansible stdout with task results
+
+![Job output](docs/screenshots/job-details2.png)
+
+**Job template** — execution config, inbound trigger URL, recent job history
+
+![Template](docs/screenshots/template-details.png)
+
+**Project** — Git-backed project with repository structure and lint results
+
+![Project](docs/screenshots/project-details.png)
+
+**Schedules** — cron-based scheduling with next/last run tracking
+
+![Schedules](docs/screenshots/schedules.png)
+
+---
+
 ## Quick Start
 
 ```bash
