@@ -8,3 +8,5 @@
 .DS_Store
 @runtime/
 .ssh/
+/.composer/
+.phpunit.result.cache
