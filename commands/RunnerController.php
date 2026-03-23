@@ -30,10 +30,10 @@ class RunnerController extends Controller
     private const HEARTBEAT_INTERVAL = 30;  // seconds between heartbeats
     private const LOG_CHUNK_BYTES    = 8192;
 
-    private string $token         = '';
-    private string $apiUrl        = '';
-    private bool   $running       = true;
-    private int    $lastHttpStatus = 0;
+    protected string $token         = '';
+    protected string $apiUrl        = '';
+    protected bool   $running       = true;
+    protected int    $lastHttpStatus = 0;
 
     public function actionStart(): int
     {
@@ -124,7 +124,7 @@ class RunnerController extends Controller
      *   2. Cached token file (from a previous self-registration)
      *   3. Self-registration via RUNNER_BOOTSTRAP_SECRET
      */
-    private function resolveToken(): string
+    protected function resolveToken(): string
     {
         $explicit = $_ENV['RUNNER_TOKEN'] ?? '';
         if ($explicit !== '') {
@@ -368,7 +368,7 @@ class RunnerController extends Controller
         return $cmd;
     }
 
-    private function tokenCacheFile(string $name): string
+    protected function tokenCacheFile(string $name): string
     {
         return '/var/www/runtime/runner-' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $name) . '.token';
     }
@@ -387,7 +387,7 @@ class RunnerController extends Controller
     /**
      * POST JSON to the ansilume API. Returns decoded response body or null on error / 204.
      */
-    private function apiPost(string $path, array $body): ?array
+    protected function apiPost(string $path, array $body): ?array
     {
         $url     = $this->apiUrl . $path;
         $payload = json_encode($body);

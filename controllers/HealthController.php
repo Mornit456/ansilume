@@ -40,7 +40,7 @@ class HealthController extends Controller
         $checks  = $this->runChecks();
         $healthy = !in_array(false, array_column($checks, 'ok'), true);
 
-        \Yii::$app->response->statusCode = $healthy ? 200 : 503;
+        $this->setHttpStatus($healthy ? 200 : 503);
 
         return [
             'status'  => $healthy ? 'ok' : 'degraded',
@@ -79,10 +79,20 @@ class HealthController extends Controller
         }
     }
 
+    protected function setHttpStatus(int $code): void
+    {
+        \Yii::$app->response->statusCode = $code;
+    }
+
+    protected function getWorkerHeartbeats(): array
+    {
+        return WorkerHeartbeat::all();
+    }
+
     private function checkWorker(): array
     {
         try {
-            $workers = WorkerHeartbeat::all();
+            $workers = $this->getWorkerHeartbeats();
             $now     = time();
             $alive   = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
 
