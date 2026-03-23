@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     container_name: ansilume_app
     restart: unless-stopped
     working_dir: /var/www
@@ -88,6 +91,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     container_name: ansilume_schedule_runner
     restart: unless-stopped
     working_dir: /var/www
@@ -105,6 +111,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     container_name: ansilume_queue_worker
     restart: unless-stopped
     working_dir: /var/www
@@ -122,6 +131,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     container_name: ansilume_runner_1
     restart: unless-stopped
     working_dir: /var/www
@@ -141,6 +153,9 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     container_name: ansilume_runner_2
     restart: unless-stopped
     working_dir: /var/www

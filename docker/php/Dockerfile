@@ -41,7 +41,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 WORKDIR /var/www
 
-USER www-data
-
+# Run entrypoint as root so composer install can write vendor/ to the
+# volume-mounted source tree regardless of host UID. The entrypoint
+# drops back to www-data via php-fpm's own process model for the
+# actual application (php-fpm handles user switching via its pool config).
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["php-fpm"]
