@@ -80,27 +80,35 @@ class HealthController extends Controller
 
     private function workerSummary(): array
     {
-        $workers = WorkerHeartbeat::all();
-        $now     = time();
-        $alive   = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
+        try {
+            $workers = WorkerHeartbeat::all();
+            $now     = time();
+            $alive   = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
 
-        return [
-            'count'   => count($alive),
-            'workers' => array_values(array_map(fn($w) => [
-                'worker_id'  => $w['worker_id'],
-                'hostname'   => $w['hostname'],
-                'started_at' => $w['started_at'],
-                'seen_at'    => $w['seen_at'],
-                'age_s'      => $now - ($w['seen_at'] ?? $now),
-            ], $alive)),
-        ];
+            return [
+                'count'   => count($alive),
+                'workers' => array_values(array_map(fn($w) => [
+                    'worker_id'  => $w['worker_id'],
+                    'hostname'   => $w['hostname'],
+                    'started_at' => $w['started_at'],
+                    'seen_at'    => $w['seen_at'],
+                    'age_s'      => $now - ($w['seen_at'] ?? $now),
+                ], $alive)),
+            ];
+        } catch (\Throwable) {
+            return ['count' => 0, 'workers' => []];
+        }
     }
 
     private function queueSummary(): array
     {
-        return [
-            'pending' => (int)Job::find()->where(['status' => [Job::STATUS_PENDING, Job::STATUS_QUEUED]])->count(),
-            'running' => (int)Job::find()->where(['status' => Job::STATUS_RUNNING])->count(),
-        ];
+        try {
+            return [
+                'pending' => (int)Job::find()->where(['status' => [Job::STATUS_PENDING, Job::STATUS_QUEUED]])->count(),
+                'running' => (int)Job::find()->where(['status' => Job::STATUS_RUNNING])->count(),
+            ];
+        } catch (\Throwable) {
+            return ['pending' => 0, 'running' => 0];
+        }
     }
 }

@@ -20,4 +20,12 @@ for dir in /var/www/runtime /var/www/web/assets; do
     chown -R www-data:www-data "$dir"
 done
 
+# Run database migrations automatically when starting the web/app container.
+# Skip for worker/runner containers (they start with a specific command, not php-fpm).
+# migrate --interactive=0 is idempotent — safe to run on every start.
+if [ "$1" = "php-fpm" ]; then
+    echo "[entrypoint] running migrations..."
+    php /var/www/yii migrate --interactive=0
+fi
+
 exec "$@"
