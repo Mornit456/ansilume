@@ -16,8 +16,8 @@ Web-based Ansible automation platform. Manage inventories, credentials, projects
 cp .env.example .env
 # Edit .env — set COOKIE_VALIDATION_KEY and APP_SECRET_KEY at minimum
 
-# Linux only: export your UID/GID so the container user matches your host user
-export UID GID
+# Linux only, if your UID is not 1000: export host UID/GID before building
+# export UID GID
 
 docker compose up -d --build
 
@@ -48,19 +48,19 @@ docker compose exec app php yii help
 
 ### Linux: user ID alignment
 
-The PHP containers run as `www-data` with a UID/GID that defaults to `1000`.
-If your host user has a different UID (check with `id -u`), the container may
-fail to write to the volume-mounted source tree.
-
-Export your IDs before building or starting containers:
+The PHP containers adjust `www-data` to match your host UID/GID so that
+files written into the volume-mounted source tree have the right ownership.
+If your host UID is not `1000` (check with `id -u`), export your IDs before
+building:
 
 ```bash
 export UID GID
 docker compose up -d --build
 ```
 
-You can also add `export UID GID` to your shell profile (`.bashrc`, `.zshrc`)
-so it applies automatically.
+You can add `export UID GID` to your shell profile (`.bashrc`, `.zshrc`) so
+it applies automatically. If you are running as root (UID 0), this step is
+not needed.
 
 ### Rebuild containers
 
