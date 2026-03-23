@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace app\tests\integration\models;
 
 use app\models\Team;
-use app\models\TeamMember;
 use app\tests\integration\DbTestCase;
 
 class TeamIntegrationTest extends DbTestCase
@@ -40,7 +39,7 @@ class TeamIntegrationTest extends DbTestCase
         $this->addMember($team->id, $member->id);
         $this->assertTrue($team->hasMember($member->id));
 
-        TeamMember::deleteAll(['team_id' => $team->id, 'user_id' => $member->id]);
+        \app\models\TeamMember::deleteAll(['team_id' => $team->id, 'user_id' => $member->id]);
 
         $this->assertFalse($team->hasMember($member->id));
     }
@@ -67,23 +66,8 @@ class TeamIntegrationTest extends DbTestCase
 
     // -------------------------------------------------------------------------
 
-    private function createTeam(int $createdBy): Team
-    {
-        $t = new Team();
-        $t->name       = 'test-team-' . uniqid('', true);
-        $t->created_by = $createdBy;
-        $t->created_at = time();
-        $t->updated_at = time();
-        $t->save(false);
-        return $t;
-    }
-
     private function addMember(int $teamId, int $userId): void
     {
-        $m = new TeamMember();
-        $m->team_id    = $teamId;
-        $m->user_id    = $userId;
-        $m->created_at = time();
-        $m->save(false);
+        $this->addTeamMember($teamId, $userId);
     }
 }

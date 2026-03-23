@@ -28,7 +28,7 @@ class UserForm extends Model
         $form->username     = $user->username;
         $form->email        = $user->email;
         $form->status       = $user->status;
-        $form->is_superadmin = $user->is_superadmin;
+        $form->is_superadmin = (bool)$user->is_superadmin;
 
         $roles = \Yii::$app->authManager->getRolesByUser($user->id);
         if ($roles) {

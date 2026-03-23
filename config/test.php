@@ -38,6 +38,24 @@ return [
         'webhookService' => [
             'class' => 'app\services\WebhookService',
         ],
+        'lintService' => [
+            'class' => 'app\services\LintService',
+        ],
+        'credentialService' => [
+            'class' => 'app\services\CredentialService',
+        ],
+        'jobClaimService' => [
+            'class' => 'app\services\JobClaimService',
+        ],
+        'jobCompletionService' => [
+            'class' => 'app\services\JobCompletionService',
+        ],
+        'projectAccessChecker' => [
+            'class' => 'app\services\ProjectAccessChecker',
+        ],
+        'projectService' => [
+            'class' => 'app\services\ProjectService',
+        ],
         'mailer' => [
             'class'            => 'yii\swiftmailer\SwiftMailer',
             'useFileTransport' => true,

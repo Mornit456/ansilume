@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace app\tests\integration;
 
+use app\models\Credential;
 use app\models\Inventory;
+use app\models\Job;
 use app\models\JobTemplate;
 use app\models\Project;
+use app\models\Runner;
 use app\models\RunnerGroup;
+use app\models\Team;
+use app\models\TeamMember;
+use app\models\TeamProject;
 use app\models\User;
 use PHPUnit\Framework\TestCase;
 
@@ -46,7 +52,7 @@ abstract class DbTestCase extends TestCase
         $u->email         = 'test_' . uniqid('', true) . '@example.com';
         $u->password_hash = \Yii::$app->security->generatePasswordHash('test');
         $u->auth_key      = \Yii::$app->security->generateRandomString();
-        $u->status        = 'active';
+        $u->status        = User::STATUS_ACTIVE;
         $u->created_at    = time();
         $u->updated_at    = time();
         $u->save(false);
@@ -110,5 +116,77 @@ abstract class DbTestCase extends TestCase
         $t->updated_at      = time();
         $t->save(false);
         return $t;
+    }
+
+    protected function createRunner(int $groupId, int $createdBy): Runner
+    {
+        $r = new Runner();
+        $r->runner_group_id = $groupId;
+        $r->name            = 'test-runner-' . uniqid('', true);
+        $r->token_hash      = hash('sha256', bin2hex(random_bytes(8)));
+        $r->created_by      = $createdBy;
+        $r->created_at      = time();
+        $r->updated_at      = time();
+        $r->save(false);
+        return $r;
+    }
+
+    protected function createJob(int $templateId, int $launchedBy, string $status = Job::STATUS_QUEUED): Job
+    {
+        $j = new Job();
+        $j->job_template_id = $templateId;
+        $j->launched_by     = $launchedBy;
+        $j->status          = $status;
+        $j->timeout_minutes = 120;
+        $j->has_changes     = 0;
+        $j->queued_at       = time();
+        $j->created_at      = time();
+        $j->updated_at      = time();
+        $j->save(false);
+        return $j;
+    }
+
+    protected function createCredential(int $createdBy, string $type = Credential::TYPE_TOKEN): Credential
+    {
+        $c = new Credential();
+        $c->name            = 'test-credential-' . uniqid('', true);
+        $c->credential_type = $type;
+        $c->created_by      = $createdBy;
+        $c->created_at      = time();
+        $c->updated_at      = time();
+        $c->save(false);
+        return $c;
+    }
+
+    protected function createTeam(int $createdBy): Team
+    {
+        $t = new Team();
+        $t->name       = 'test-team-' . uniqid('', true);
+        $t->created_by = $createdBy;
+        $t->created_at = time();
+        $t->updated_at = time();
+        $t->save(false);
+        return $t;
+    }
+
+    protected function addTeamMember(int $teamId, int $userId): TeamMember
+    {
+        $m = new TeamMember();
+        $m->team_id    = $teamId;
+        $m->user_id    = $userId;
+        $m->created_at = time();
+        $m->save(false);
+        return $m;
+    }
+
+    protected function createTeamProject(int $teamId, int $projectId, string $role = TeamProject::ROLE_OPERATOR): TeamProject
+    {
+        $tp = new TeamProject();
+        $tp->team_id    = $teamId;
+        $tp->project_id = $projectId;
+        $tp->role       = $role;
+        $tp->created_at = time();
+        $tp->save(false);
+        return $tp;
     }
 }
