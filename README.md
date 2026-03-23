@@ -49,10 +49,7 @@ cp .env.example .env
 
 docker compose up -d --build
 
-# Run migrations
-docker compose exec app php yii migrate --interactive=0
-
-# Create the first admin user
+# Create the first admin user (migrations run automatically on startup)
 docker compose exec app php yii setup/admin admin admin@example.com yourpassword
 ```
 
@@ -67,7 +64,7 @@ docker compose up -d           # Start all services
 docker compose logs -f app     # PHP-FPM logs
 docker compose logs -f worker  # Queue worker logs
 
-# Migrations
+# Migrations (run automatically on startup, but can be triggered manually)
 docker compose exec app php yii migrate
 
 # Console
@@ -99,7 +96,6 @@ export UID GID   # Linux only
 docker compose down
 docker compose build --no-cache
 docker compose up -d
-docker compose exec app php yii migrate --interactive=0
 ```
 
 `--no-cache` ensures layers are not reused from a previous build.
