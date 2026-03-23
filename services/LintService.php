@@ -83,7 +83,7 @@ class LintService extends Component
      * Resolve the filesystem path for a project, regardless of SCM type.
      * Returns null if no path is configured (e.g. new git project not yet synced).
      */
-    private function resolveProjectPath(Project $project): ?string
+    protected function resolveProjectPath(Project $project): ?string
     {
         if ($project->scm_type === Project::SCM_TYPE_MANUAL) {
             return !empty($project->local_path) ? $project->local_path : null;
@@ -94,7 +94,7 @@ class LintService extends Component
         return $projectService->localPath($project);
     }
 
-    private function storeProject(Project $project, ?int $exitCode, string $output): void
+    protected function storeProject(Project $project, ?int $exitCode, string $output): void
     {
         $project->lint_output    = $output;
         $project->lint_at        = time();
@@ -102,7 +102,7 @@ class LintService extends Component
         $project->save(false, ['lint_output', 'lint_at', 'lint_exit_code']);
     }
 
-    private function isAvailable(): bool
+    protected function isAvailable(): bool
     {
         exec('which ansible-lint 2>/dev/null', $out, $code);
         return $code === 0;
@@ -111,7 +111,7 @@ class LintService extends Component
     /**
      * @return array{string, int}  [combined output, exit code]
      */
-    private function execute(string $playbook, string $cwd): array
+    protected function execute(string $playbook, string $cwd): array
     {
         $cmd = ['ansible-lint', '--profile', 'production', '--nocolor', $playbook];
 
@@ -138,7 +138,7 @@ class LintService extends Component
         return [$output, $exitCode];
     }
 
-    private function store(JobTemplate $template, ?int $exitCode, string $output): void
+    protected function store(JobTemplate $template, ?int $exitCode, string $output): void
     {
         $template->lint_output    = $output;
         $template->lint_at        = time();

@@ -131,7 +131,7 @@ class JobLaunchService extends Component
         return $base;
     }
 
-    private function buildRunnerPayload(\app\models\JobTemplate $template, \app\models\Job $job): string
+    protected function buildRunnerPayload(\app\models\JobTemplate $template, \app\models\Job $job): string
     {
         return json_encode([
             'template_id'   => $template->id,
