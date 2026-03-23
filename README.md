@@ -43,6 +43,20 @@ docker compose exec app php yii migrate
 docker compose exec app php yii help
 ```
 
+### Rebuild containers
+
+After changes to `docker/` (Dockerfile, PHP config, installed packages):
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+docker compose exec app php yii migrate --interactive=0
+```
+
+`--no-cache` ensures layers are not reused from a previous build.
+Omit it when only config files changed and you want a faster rebuild.
+
 ---
 
 ## Architecture
