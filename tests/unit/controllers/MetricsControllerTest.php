@@ -27,6 +27,7 @@ class MetricsControllerTest extends TestCase
         $this->assertArrayHasKey('tasks', $data);
         $this->assertArrayHasKey('hosts', $data);
         $this->assertArrayHasKey('runners', $data);
+        $this->assertArrayHasKey('schedules', $data);
         $this->assertArrayHasKey('queue', $data);
     }
 
@@ -114,6 +115,7 @@ class MetricsControllerTest extends TestCase
                 'jobs_with_changes' => 35,
             ],
             'runners' => ['total' => 4, 'online' => 2, 'offline' => 2],
+            'schedules' => ['total' => 10, 'enabled' => 7, 'overdue' => 1],
             'queue' => ['pending' => 8, 'running' => 2],
         ];
     }
@@ -141,6 +143,9 @@ class MetricsControllerTest extends TestCase
             'ansilume_runners_total',
             'ansilume_runners_online',
             'ansilume_runners_offline',
+            'ansilume_schedules_total',
+            'ansilume_schedules_enabled',
+            'ansilume_schedules_overdue',
             'ansilume_queue_pending',
             'ansilume_queue_running',
         ];
@@ -334,5 +339,29 @@ class MetricsControllerTest extends TestCase
         $this->assertStringContainsString('ansilume_runners_total 4', $output);
         $this->assertStringContainsString('ansilume_runners_online 2', $output);
         $this->assertStringContainsString('ansilume_runners_offline 2', $output);
+    }
+
+    // ── Schedules ────────────────────────────────────────────────────────
+
+    public function testCollectSchedulesKeys(): void
+    {
+        $ctrl = new MetricsController('metrics', \Yii::$app);
+        $schedules = $ctrl->collect()['schedules'];
+
+        $this->assertArrayHasKey('total', $schedules);
+        $this->assertArrayHasKey('enabled', $schedules);
+        $this->assertArrayHasKey('overdue', $schedules);
+        $this->assertIsInt($schedules['total']);
+        $this->assertIsInt($schedules['enabled']);
+        $this->assertIsInt($schedules['overdue']);
+    }
+
+    public function testPrometheusScheduleValues(): void
+    {
+        $output = MetricsController::renderPrometheus($this->sampleMetrics());
+
+        $this->assertStringContainsString('ansilume_schedules_total 10', $output);
+        $this->assertStringContainsString('ansilume_schedules_enabled 7', $output);
+        $this->assertStringContainsString('ansilume_schedules_overdue 1', $output);
     }
 }

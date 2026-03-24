@@ -68,6 +68,14 @@ scrape_configs:
 | `ansilume_runners_online` | gauge | Runners that checked in within the last 120 seconds |
 | `ansilume_runners_offline` | gauge | Registered runners that are not responding |
 
+### Schedules
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `ansilume_schedules_total` | gauge | Total number of schedules |
+| `ansilume_schedules_enabled` | gauge | Number of enabled schedules |
+| `ansilume_schedules_overdue` | gauge | Enabled schedules past due by more than 5 minutes |
+
 ### Queue
 
 | Metric | Type | Description |
@@ -89,6 +97,9 @@ ansilume_tasks_last_1h{status="changed"} / ignoring(status) ansilume_tasks_last_
 
 # Hosts with failures
 ansilume_hosts_with_failures
+
+# Overdue schedules (scheduler down?)
+ansilume_schedules_overdue > 0
 
 # Runner availability
 ansilume_runners_online / ansilume_runners_total
@@ -135,6 +146,7 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
     "jobs_with_changes": 85
   },
   "runners": { "total": 4, "online": 2, "offline": 2 },
+  "schedules": { "total": 10, "enabled": 7, "overdue": 0 },
   "queue": { "pending": 1, "running": 2 }
 }
 ```
@@ -155,6 +167,7 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
 | `database` | Executes `SELECT 1` against the database | DB connection lost or server down |
 | `redis` | Writes a test key with 5s TTL | Redis connection lost or server down |
 | `runners` | Checks for online runners (DB `last_seen_at`) | No runners available to execute jobs |
+| `scheduler` | Checks for overdue schedules (next_run_at > 5 min past) | Schedule runner likely stopped |
 
 ### Example response
 
@@ -164,12 +177,17 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
   "checks": {
     "database": { "ok": true, "latency_ms": null },
     "redis": { "ok": true },
-    "runners": { "ok": true, "online": 2, "total": 4 }
+    "runners": { "ok": true, "online": 2, "total": 4 },
+    "scheduler": { "ok": true, "enabled": 3, "overdue": 0 }
   },
   "runners": {
     "total": 4,
     "online": 2,
     "offline": 2
+  },
+  "schedules": {
+    "total": 5,
+    "enabled": 3
   },
   "queue": {
     "pending": 0,
@@ -182,4 +200,5 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
 
 - Runners are registered runner agents tracked via `last_seen_at` in the database.
 - Runners are considered offline if they haven't checked in within 120 seconds.
+- The scheduler check detects overdue schedules — if enabled schedules have a `next_run_at` more than 5 minutes in the past, the schedule-runner container is likely not running.
 - No authentication required — restrict access via network rules if the endpoint should not be public.

@@ -82,7 +82,7 @@ class JobSearchFormTest extends TestCase
     public function testTemplateIdAcceptsInteger(): void
     {
         $form = new JobSearchForm();
-        $form->template_id = 42;
+        $form->template_id = '42';
         $form->validate(['template_id']);
         $this->assertFalse($form->hasErrors('template_id'));
     }
@@ -90,8 +90,42 @@ class JobSearchFormTest extends TestCase
     public function testLaunchedByAcceptsInteger(): void
     {
         $form = new JobSearchForm();
-        $form->launched_by = 7;
+        $form->launched_by = '7';
         $form->validate(['launched_by']);
         $this->assertFalse($form->hasErrors('launched_by'));
+    }
+
+    public function testRunnerGroupIdAcceptsInteger(): void
+    {
+        $form = new JobSearchForm();
+        $form->runner_group_id = '3';
+        $form->validate(['runner_group_id']);
+        $this->assertFalse($form->hasErrors('runner_group_id'));
+    }
+
+    public function testRunnerGroupIdRejectsNonNumeric(): void
+    {
+        $form = new JobSearchForm();
+        $form->runner_group_id = 'abc';
+        $form->validate(['runner_group_id']);
+        $this->assertTrue($form->hasErrors('runner_group_id'));
+    }
+
+    /**
+     * Regression: empty strings from GET params must not cause TypeError on ?string properties.
+     */
+    public function testEmptyStringParamsDoNotThrow(): void
+    {
+        $form = new JobSearchForm();
+        $form->load([
+            'status'          => '',
+            'template_id'     => '',
+            'launched_by'     => '',
+            'runner_group_id' => '',
+            'date_from'       => '',
+            'date_to'         => '',
+        ], '');
+        $form->validate();
+        $this->assertFalse($form->hasErrors());
     }
 }

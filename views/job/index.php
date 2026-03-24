@@ -6,11 +6,13 @@ declare(strict_types=1);
 /** @var yii\data\ActiveDataProvider $dataProvider */
 /** @var app\models\JobSearchForm $searchForm */
 /** @var app\models\JobTemplate[] $templates */
+/** @var app\models\RunnerGroup[] $runnerGroups */
 /** @var app\models\User[] $users */
 /** @var array $statusOptions */
 
 use app\models\Job;
 use app\models\JobHostSummary;
+use app\models\RunnerGroup;
 use yii\helpers\Html;
 use yii\widgets\LinkPager;
 
@@ -57,6 +59,17 @@ $this->title = 'Jobs';
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label small mb-1">Runner</label>
+                <select name="runner_group_id" class="form-select form-select-sm">
+                    <option value="">— Any —</option>
+                    <?php foreach ($runnerGroups as $rg): ?>
+                        <option value="<?= $rg->id ?>" <?= $searchForm->runner_group_id == $rg->id ? 'selected' : '' ?>>
+                            <?= Html::encode($rg->name) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label small mb-1">From</label>
                 <input type="date" name="date_from" class="form-control form-control-sm"
                        value="<?= Html::encode($searchForm->date_from ?? '') ?>">
@@ -70,7 +83,7 @@ $this->title = 'Jobs';
                 <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
             </div>
         </div>
-        <?php if ($searchForm->status || $searchForm->template_id || $searchForm->launched_by || $searchForm->date_from || $searchForm->date_to): ?>
+        <?php if ($searchForm->status || $searchForm->template_id || $searchForm->launched_by || $searchForm->runner_group_id || $searchForm->date_from || $searchForm->date_to): ?>
             <div class="mt-1">
                 <?= Html::a('Clear filters', ['index'], ['class' => 'small text-muted']) ?>
             </div>
@@ -86,16 +99,15 @@ $this->title = 'Jobs';
         <table class="table table-hover">
             <thead class="table-light">
                 <tr>
-                    <th>#</th><th>Template</th><th>Status</th>
+                    <th>#</th><th>Status</th><th>Template</th>
                     <th class="text-center">Hosts</th><th>Recap</th>
-                    <th>Launched by</th><th>Queued</th><th>Started</th><th>Duration</th>
+                    <th>Launched by</th><th>Runner</th><th>Started</th><th>Duration</th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($models as $job): ?>
                 <tr>
                     <td><?= Html::a('#' . $job->id, ['view', 'id' => $job->id]) ?></td>
-                    <td><?= Html::encode($job->jobTemplate->name ?? '—') ?></td>
                     <td>
                         <?= Html::a(
                             Html::encode(Job::statusLabel($job->status)),
@@ -103,6 +115,7 @@ $this->title = 'Jobs';
                             ['class' => 'badge text-bg-' . Job::statusCssClass($job->status) . ' text-decoration-none']
                         ) ?>
                     </td>
+                    <td><?= Html::encode($job->jobTemplate->name ?? '—') ?></td>
                     <?php $recap = JobHostSummary::aggregate($job->hostSummaries); ?>
                     <td class="text-center">
                         <?= $recap['hosts'] > 0 ? $recap['hosts'] : '<span class="text-muted">—</span>' // xss-ok: integer or hardcoded HTML ?>
@@ -131,7 +144,7 @@ $this->title = 'Jobs';
                         <?php endif; ?>
                     </td>
                     <td><?= Html::encode($job->launcher->username ?? '—') ?></td>
-                    <td><?= $job->queued_at   ? date('Y-m-d H:i', $job->queued_at)   : '—' ?></td>
+                    <td><?= Html::encode($job->jobTemplate->runnerGroup->name ?? '—') ?></td>
                     <td><?= $job->started_at  ? date('Y-m-d H:i', $job->started_at)  : '—' ?></td>
                     <td>
                         <?php

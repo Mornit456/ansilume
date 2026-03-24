@@ -9,6 +9,7 @@ use app\models\JobLog;
 use app\models\JobSearchForm;
 use app\models\JobTask;
 use app\models\JobTemplate;
+use app\models\RunnerGroup;
 use app\models\User;
 use app\services\AuditService;
 use app\services\JobLaunchService;
@@ -39,6 +40,7 @@ class JobController extends BaseController
             'searchForm'    => $searchForm,
             'dataProvider'  => $dataProvider,
             'templates'     => JobTemplate::find()->orderBy('name')->all(),
+            'runnerGroups'  => RunnerGroup::find()->orderBy('name')->all(),
             'users'         => User::find()->orderBy('username')->all(),
             'statusOptions' => array_combine(
                 Job::statuses(),

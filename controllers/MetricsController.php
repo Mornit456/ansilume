@@ -9,6 +9,7 @@ use app\models\JobHostSummary;
 use app\models\JobTask;
 use app\models\Runner;
 use app\models\RunnerGroup;
+use app\models\Schedule;
 use yii\web\Controller;
 use yii\web\Response;
 
@@ -56,8 +57,9 @@ class MetricsController extends Controller
             'jobs'    => $this->collectJobs(),
             'tasks'   => $this->collectTasks(),
             'hosts'   => $this->collectHosts(),
-            'runners' => $this->collectRunners(),
-            'queue'   => $this->collectQueue(),
+            'runners'   => $this->collectRunners(),
+            'schedules' => $this->collectSchedules(),
+            'queue'     => $this->collectQueue(),
         ];
     }
 
@@ -249,6 +251,27 @@ class MetricsController extends Controller
         }
     }
 
+    private function collectSchedules(): array
+    {
+        try {
+            $total   = (int)Schedule::find()->count();
+            $enabled = (int)Schedule::find()->where(['enabled' => 1])->count();
+            $overdue = (int)Schedule::find()
+                ->where(['enabled' => 1])
+                ->andWhere(['not', ['next_run_at' => null]])
+                ->andWhere(['<', 'next_run_at', time() - 300])
+                ->count();
+
+            return [
+                'total'   => $total,
+                'enabled' => $enabled,
+                'overdue' => $overdue,
+            ];
+        } catch (\Throwable) {
+            return ['total' => 0, 'enabled' => 0, 'overdue' => 0];
+        }
+    }
+
     private function collectQueue(): array
     {
         try {
@@ -383,6 +406,20 @@ class MetricsController extends Controller
         $lines[] = '# HELP ansilume_runners_offline Registered runners that are not responding.';
         $lines[] = '# TYPE ansilume_runners_offline gauge';
         $lines[] = 'ansilume_runners_offline ' . $r['offline'];
+
+        // Schedules
+        $sc = $metrics['schedules'];
+        $lines[] = '# HELP ansilume_schedules_total Total number of schedules.';
+        $lines[] = '# TYPE ansilume_schedules_total gauge';
+        $lines[] = 'ansilume_schedules_total ' . $sc['total'];
+
+        $lines[] = '# HELP ansilume_schedules_enabled Number of enabled schedules.';
+        $lines[] = '# TYPE ansilume_schedules_enabled gauge';
+        $lines[] = 'ansilume_schedules_enabled ' . $sc['enabled'];
+
+        $lines[] = '# HELP ansilume_schedules_overdue Enabled schedules past due by more than 5 minutes.';
+        $lines[] = '# TYPE ansilume_schedules_overdue gauge';
+        $lines[] = 'ansilume_schedules_overdue ' . $sc['overdue'];
 
         // Queue
         $q = $metrics['queue'];

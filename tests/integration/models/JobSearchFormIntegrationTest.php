@@ -107,6 +107,36 @@ class JobSearchFormIntegrationTest extends DbTestCase
         $this->assertEmpty($ids, 'No jobs should match a past date_to');
     }
 
+    public function testSearchFiltersByRunnerGroupId(): void
+    {
+        [$templateA, $user] = $this->makeFixtures();
+        [$templateB]        = $this->makeFixtures();
+        $this->createJob($templateA->id, $user->id);
+        $this->createJob($templateB->id, $user->id);
+
+        $groupId  = $templateA->runner_group_id;
+        $form     = new JobSearchForm();
+        $provider = $form->search(['runner_group_id' => (string)$groupId]);
+
+        foreach ($provider->getModels() as $job) {
+            $this->assertSame($groupId, $job->jobTemplate->runner_group_id);
+        }
+    }
+
+    public function testSearchWithEmptyStringParamsDoesNotThrow(): void
+    {
+        $form   = new JobSearchForm();
+        $result = $form->search([
+            'status'          => '',
+            'template_id'     => '',
+            'launched_by'     => '',
+            'runner_group_id' => '',
+            'date_from'       => '',
+            'date_to'         => '',
+        ]);
+        $this->assertInstanceOf(ActiveDataProvider::class, $result);
+    }
+
     public function testSearchIgnoresInvalidStatusFilter(): void
     {
         $form   = new JobSearchForm();

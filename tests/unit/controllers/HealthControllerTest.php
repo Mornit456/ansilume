@@ -8,39 +8,43 @@ use app\controllers\HealthController;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for HealthController runner check logic.
+ * Tests for HealthController check logic.
  *
- * The health endpoint checks database, Redis, and runner availability.
- * Runner counts come from the database (Runner model with last_seen_at).
- * These tests stub getRunnerCounts() to control the runner state.
+ * The health endpoint checks database, Redis, runner availability, and scheduler.
+ * These tests stub getRunnerCounts() and getScheduleCounts() to control state.
  */
 class HealthControllerTest extends TestCase
 {
     /**
-     * Build a HealthController with stubbed runner counts and optional DB/Redis stubs.
+     * Build a HealthController with stubbed runner/schedule counts.
      */
-    private function makeController(array $runnerCounts, bool $dbOk = true, bool $redisOk = true): HealthController
-    {
-        return new class('health', \Yii::$app, $runnerCounts, $dbOk, $redisOk) extends HealthController {
+    private function makeController(
+        array $runnerCounts,
+        array $scheduleCounts = ['enabled' => 0, 'overdue' => 0],
+        bool $dbOk = true,
+        bool $redisOk = true,
+    ): HealthController {
+        return new class('health', \Yii::$app, $runnerCounts, $scheduleCounts, $dbOk, $redisOk) extends HealthController {
             public int    $capturedStatus = 0;
             private array $fakeRunnerCounts;
+            private array $fakeScheduleCounts;
             private bool  $fakeDbOk;
             private bool  $fakeRedisOk;
 
-            public function __construct($id, $module, array $rc, bool $dbOk, bool $redisOk) {
+            public function __construct($id, $module, array $rc, array $sc, bool $dbOk, bool $redisOk) {
                 parent::__construct($id, $module);
-                $this->fakeRunnerCounts = $rc;
-                $this->fakeDbOk         = $dbOk;
-                $this->fakeRedisOk      = $redisOk;
+                $this->fakeRunnerCounts   = $rc;
+                $this->fakeScheduleCounts = $sc;
+                $this->fakeDbOk           = $dbOk;
+                $this->fakeRedisOk        = $redisOk;
             }
 
             protected function getRunnerCounts(): array { return $this->fakeRunnerCounts; }
+            protected function getScheduleCounts(): array { return $this->fakeScheduleCounts; }
             protected function setHttpStatus(int $code): void { $this->capturedStatus = $code; }
 
-            // Expose private check methods for testing
-            public function testCheckRunners(): array {
-                return $this->checkRunners();
-            }
+            public function testCheckRunners(): array { return $this->checkRunners(); }
+            public function testCheckScheduler(): array { return $this->checkScheduler(); }
         };
     }
 
@@ -75,7 +79,7 @@ class HealthControllerTest extends TestCase
 
     // ── runChecks() structure ──────────────────────────────────────────────
 
-    public function testRunChecksIncludesRunnersKey(): void
+    public function testRunChecksIncludesAllKeys(): void
     {
         $ctrl = $this->makeController(['total' => 1, 'online' => 1, 'offline' => 0]);
         $ref  = new \ReflectionMethod($ctrl, 'runChecks');
@@ -83,11 +87,10 @@ class HealthControllerTest extends TestCase
 
         $checks = $ref->invoke($ctrl);
 
-        $this->assertArrayHasKey('runners', $checks,
-            'runChecks() must include a runners check so missing runners affect the health status.'
-        );
         $this->assertArrayHasKey('database', $checks);
         $this->assertArrayHasKey('redis', $checks);
+        $this->assertArrayHasKey('runners', $checks);
+        $this->assertArrayHasKey('scheduler', $checks);
     }
 
     // ── Full action — HTTP status ──────────────────────────────────────────
@@ -141,5 +144,69 @@ class HealthControllerTest extends TestCase
         $this->assertArrayHasKey('queue', $response);
         $this->assertArrayHasKey('pending', $response['queue']);
         $this->assertArrayHasKey('running', $response['queue']);
+    }
+
+    public function testResponseIncludesSchedulesSection(): void
+    {
+        $ctrl = $this->makeController(
+            ['total' => 1, 'online' => 1, 'offline' => 0],
+            ['enabled' => 3, 'overdue' => 0],
+        );
+        $response = $ctrl->actionIndex();
+
+        $this->assertArrayHasKey('schedules', $response);
+        $this->assertArrayHasKey('total', $response['schedules']);
+        $this->assertArrayHasKey('enabled', $response['schedules']);
+    }
+
+    // ── checkScheduler() ────────────────────────────────────────────────
+
+    public function testCheckSchedulerOkWhenNoEnabledSchedules(): void
+    {
+        $ctrl = $this->makeController(
+            ['total' => 1, 'online' => 1, 'offline' => 0],
+            ['enabled' => 0, 'overdue' => 0],
+        );
+        $result = $ctrl->testCheckScheduler();
+
+        $this->assertTrue($result['ok']);
+    }
+
+    public function testCheckSchedulerOkWhenNoOverdue(): void
+    {
+        $ctrl = $this->makeController(
+            ['total' => 1, 'online' => 1, 'offline' => 0],
+            ['enabled' => 5, 'overdue' => 0],
+        );
+        $result = $ctrl->testCheckScheduler();
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame(5, $result['enabled']);
+    }
+
+    public function testCheckSchedulerFailsWhenOverdue(): void
+    {
+        $ctrl = $this->makeController(
+            ['total' => 1, 'online' => 1, 'offline' => 0],
+            ['enabled' => 3, 'overdue' => 2],
+        );
+        $result = $ctrl->testCheckScheduler();
+
+        $this->assertFalse($result['ok']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame(2, $result['overdue']);
+    }
+
+    public function testActionIndexReturnsDegradedWhenSchedulerOverdue(): void
+    {
+        $ctrl = $this->makeController(
+            ['total' => 2, 'online' => 2, 'offline' => 0],
+            ['enabled' => 1, 'overdue' => 1],
+        );
+        $response = $ctrl->actionIndex();
+
+        $this->assertSame('degraded', $response['status']);
+        $this->assertSame(503, $ctrl->capturedStatus);
+        $this->assertFalse($response['checks']['scheduler']['ok']);
     }
 }

@@ -13,8 +13,9 @@ use yii\data\ActiveDataProvider;
 class JobSearchForm extends Model
 {
     public ?string $status       = null;
-    public ?int    $template_id  = null;
-    public ?int    $launched_by  = null;
+    public ?string $template_id  = null;
+    public ?string $launched_by  = null;
+    public ?string $runner_group_id = null;
     public ?string $date_from    = null;
     public ?string $date_to      = null;
 
@@ -22,7 +23,7 @@ class JobSearchForm extends Model
     {
         return [
             [['status'],      'in', 'range' => array_merge([''], Job::statuses())],
-            [['template_id', 'launched_by'], 'integer'],
+            [['template_id', 'launched_by', 'runner_group_id'], 'integer'],
             [['date_from', 'date_to'], 'date', 'format' => 'php:Y-m-d'],
         ];
     }
@@ -45,6 +46,11 @@ class JobSearchForm extends Model
         }
         if (!empty($this->launched_by)) {
             $query->andWhere(['launched_by' => (int)$this->launched_by]);
+        }
+        if (!empty($this->runner_group_id)) {
+            $query->andWhere(['job_template_id' => JobTemplate::find()
+                ->select('id')
+                ->where(['runner_group_id' => (int)$this->runner_group_id])]);
         }
         if (!empty($this->date_from)) {
             $ts = strtotime($this->date_from);

@@ -7,6 +7,7 @@ namespace app\controllers;
 use app\models\Job;
 use app\models\Runner;
 use app\models\RunnerGroup;
+use app\models\Schedule;
 use yii\filters\ContentNegotiator;
 use yii\web\Controller;
 use yii\web\Response;
@@ -44,19 +45,21 @@ class HealthController extends Controller
         $this->setHttpStatus($healthy ? 200 : 503);
 
         return [
-            'status'  => $healthy ? 'ok' : 'degraded',
-            'checks'  => $checks,
-            'runners' => $this->runnerSummary(),
-            'queue'   => $this->queueSummary(),
+            'status'    => $healthy ? 'ok' : 'degraded',
+            'checks'    => $checks,
+            'runners'   => $this->runnerSummary(),
+            'schedules' => $this->scheduleSummary(),
+            'queue'     => $this->queueSummary(),
         ];
     }
 
-    private function runChecks(): array
+    protected function runChecks(): array
     {
         return [
-            'database' => $this->checkDatabase(),
-            'redis'    => $this->checkRedis(),
-            'runners'  => $this->checkRunners(),
+            'database'  => $this->checkDatabase(),
+            'redis'     => $this->checkRedis(),
+            'runners'   => $this->checkRunners(),
+            'scheduler' => $this->checkScheduler(),
         ];
     }
 
@@ -100,6 +103,43 @@ class HealthController extends Controller
         }
     }
 
+    protected function checkScheduler(): array
+    {
+        try {
+            $counts = $this->getScheduleCounts();
+
+            if ($counts['enabled'] === 0) {
+                return ['ok' => true, 'enabled' => 0, 'overdue' => 0];
+            }
+
+            if ($counts['overdue'] > 0) {
+                return [
+                    'ok'      => false,
+                    'error'   => $counts['overdue'] . ' overdue schedule(s)',
+                    'enabled' => $counts['enabled'],
+                    'overdue' => $counts['overdue'],
+                ];
+            }
+
+            return ['ok' => true, 'enabled' => $counts['enabled'], 'overdue' => 0];
+        } catch (\Throwable) {
+            return ['ok' => false, 'error' => 'Scheduler check failed'];
+        }
+    }
+
+    protected function getScheduleCounts(): array
+    {
+        $enabled = (int)Schedule::find()->where(['enabled' => 1])->count();
+        // Overdue = enabled + next_run_at more than 5 minutes in the past
+        $overdue = (int)Schedule::find()
+            ->where(['enabled' => 1])
+            ->andWhere(['not', ['next_run_at' => null]])
+            ->andWhere(['<', 'next_run_at', time() - 300])
+            ->count();
+
+        return ['enabled' => $enabled, 'overdue' => $overdue];
+    }
+
     private function runnerSummary(): array
     {
         return $this->getRunnerCounts();
@@ -119,6 +159,17 @@ class HealthController extends Controller
             ];
         } catch (\Throwable) {
             return ['total' => 0, 'online' => 0, 'offline' => 0];
+        }
+    }
+
+    private function scheduleSummary(): array
+    {
+        try {
+            $total   = (int)Schedule::find()->count();
+            $enabled = (int)Schedule::find()->where(['enabled' => 1])->count();
+            return ['total' => $total, 'enabled' => $enabled];
+        } catch (\Throwable) {
+            return ['total' => 0, 'enabled' => 0];
         }
     }
 
