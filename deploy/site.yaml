@@ -1,0 +1,7 @@
+---
+- name: Deploy Ansilume
+  hosts: ansilume
+  become: true
+
+  roles:
+    - role: ansilume

@@ -44,7 +44,8 @@ Think of it as a lightweight, self-hosted alternative to AWX or Semaphore — de
 - **Live job output** — streaming stdout/stderr with per-task play recap
 - **Git-backed projects** — sync playbooks from remote repositories
 - **Lint integration** — automatic ansible-lint on project sync
-- **Monitoring endpoints** — [Prometheus and JSON metrics](docs/monitoring.md) for jobs, tasks, hosts, workers, and infrastructure health
+- **Monitoring endpoints** — [Prometheus and JSON metrics](docs/monitoring.md) for jobs, tasks, hosts, runners, and infrastructure health
+- **Production deployment** — [Ansible role](docs/deployment.md) for automated production installation
 
 ---
 
@@ -221,6 +222,19 @@ Add `export UID GID` to your shell profile to apply automatically. Not needed wh
 - All state-changing actions require explicit authorization
 - Ansible execution runs in isolated worker processes with auditable command construction
 - Runner tokens are stored as SHA-256 hashes — raw tokens are shown exactly once
+
+---
+
+## Production Deployment
+
+Ansilume includes an Ansible role for automated production deployment. See [docs/deployment.md](docs/deployment.md) for the full guide.
+
+```bash
+cd deploy
+ansible-playbook site.yaml -i inventory/production.yaml --ask-vault-pass
+```
+
+The role handles Docker installation, configuration templating, container orchestration, and health verification. Supports external databases and custom runner counts.
 
 ---
 

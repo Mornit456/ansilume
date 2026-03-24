@@ -1,0 +1,10 @@
+---
+all:
+  children:
+    ansilume:
+      hosts:
+        # Replace with your production server(s).
+        # ansilume-prod:
+        #   ansible_host: 10.0.0.1
+        #   ansible_user: deploy
+        {}

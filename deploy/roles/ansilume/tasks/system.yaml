@@ -1,0 +1,44 @@
+---
+- name: Create ansilume system group
+  ansible.builtin.group:
+    name: "{{ ansilume_system_group }}"
+    system: true
+    state: present
+  become: true
+  when: ansilume_create_user
+
+- name: Create ansilume system user
+  ansible.builtin.user:
+    name: "{{ ansilume_system_user }}"
+    group: "{{ ansilume_system_group }}"
+    system: true
+    shell: /bin/bash
+    home: "{{ ansilume_install_dir }}"
+    create_home: false
+    groups: docker
+    append: true
+  become: true
+  when: ansilume_create_user
+
+- name: Create installation directory
+  ansible.builtin.file:
+    path: "{{ ansilume_install_dir }}"
+    state: directory
+    owner: "{{ ansilume_system_user }}"
+    group: "{{ ansilume_system_group }}"
+    mode: "0750"
+  become: true
+
+- name: Create Docker configuration subdirectories
+  ansible.builtin.file:
+    path: "{{ ansilume_install_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ ansilume_system_user }}"
+    group: "{{ ansilume_system_group }}"
+    mode: "0750"
+  loop:
+    - docker
+    - docker/nginx
+    - docker/mysql
+    - docker/php
+  become: true

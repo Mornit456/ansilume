@@ -1,0 +1,44 @@
+---
+- name: Deploy from release archive
+  when: ansilume_release_archive | length > 0
+  block:
+    - name: Upload release archive
+      ansible.builtin.copy:
+        src: "{{ ansilume_release_archive }}"
+        dest: "{{ ansilume_install_dir }}/release.tar.gz"
+        owner: "{{ ansilume_system_user }}"
+        group: "{{ ansilume_system_group }}"
+        mode: "0640"
+      become: true
+
+    - name: Extract release archive
+      ansible.builtin.unarchive:
+        src: "{{ ansilume_install_dir }}/release.tar.gz"
+        dest: "{{ ansilume_install_dir }}"
+        remote_src: true
+        owner: "{{ ansilume_system_user }}"
+        group: "{{ ansilume_system_group }}"
+        extra_opts:
+          - --strip-components=1
+      become: true
+      notify: Restart ansilume stack
+
+- name: Deploy from git repository
+  when: ansilume_release_archive | length == 0 and ansilume_repo_url | length > 0
+  block:
+    - name: Install git
+      ansible.builtin.package:
+        name: git
+        state: present
+      become: true
+
+    - name: Clone or update repository
+      ansible.builtin.git:
+        repo: "{{ ansilume_repo_url }}"
+        dest: "{{ ansilume_install_dir }}"
+        version: "{{ ansilume_version }}"
+        force: true
+      become: true
+      become_user: "{{ ansilume_system_user }}"
+      register: _ansilume_git
+      notify: Restart ansilume stack

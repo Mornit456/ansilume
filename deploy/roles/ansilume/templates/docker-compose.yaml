@@ -1,0 +1,202 @@
+# {{ ansible_managed }}
+# Ansilume production docker-compose — do not edit manually.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-{{ ansilume_uid }}}
+        GROUP_ID: ${GID:-{{ ansilume_gid }}}
+    container_name: {{ ansilume_compose_project }}_app
+    restart: {{ ansilume_restart_policy }}
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    environment:
+      - APP_ENV=${APP_ENV:-{{ ansilume_app_env }}}
+    depends_on:
+{% if ansilume_db_local %}
+      db:
+        condition: service_healthy
+{% endif %}
+{% if ansilume_redis_local %}
+      redis:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "php", "/var/www/yii", "health/check"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - {{ ansilume_network_name }}
+
+  nginx:
+    image: {{ ansilume_nginx_image }}
+    container_name: {{ ansilume_compose_project }}_nginx
+    restart: {{ ansilume_restart_policy }}
+    ports:
+      - "${NGINX_PORT:-{{ ansilume_nginx_port }}}:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health 2>/dev/null | grep -q '\"status\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - {{ ansilume_network_name }}
+
+{% if ansilume_db_local %}
+  db:
+    image: {{ ansilume_db_image }}
+    container_name: {{ ansilume_compose_project }}_db
+    restart: {{ ansilume_restart_policy }}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-{{ ansilume_db_root_password }}}
+      MYSQL_DATABASE: ${DB_NAME:-{{ ansilume_db_name }}}
+      MYSQL_USER: ${DB_USER:-{{ ansilume_db_user }}}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-{{ ansilume_db_password }}}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "${DB_USER:-{{ ansilume_db_user }}}", "-p${DB_PASSWORD:-{{ ansilume_db_password }}}", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - {{ ansilume_network_name }}
+{% endif %}
+
+{% if ansilume_redis_local %}
+  redis:
+    image: {{ ansilume_redis_image }}
+    container_name: {{ ansilume_compose_project }}_redis
+    restart: {{ ansilume_restart_policy }}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - {{ ansilume_network_name }}
+{% endif %}
+
+  schedule-runner:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-{{ ansilume_uid }}}
+        GROUP_ID: ${GID:-{{ ansilume_gid }}}
+    container_name: {{ ansilume_compose_project }}_schedule_runner
+    restart: {{ ansilume_restart_policy }}
+    working_dir: /var/www
+    command: ["/bin/sh", "-c",
+      "while true; do php yii schedule/run && touch /tmp/schedule-alive; sleep 60; done"]
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+{% if ansilume_db_local %}
+      db:
+        condition: service_healthy
+{% endif %}
+{% if ansilume_redis_local %}
+      redis:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "sh", "-c",
+        "test -f /tmp/schedule-alive && test $(( $(date +%s) - $(stat -c %Y /tmp/schedule-alive) )) -lt 150"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
+      start_period: 90s
+    networks:
+      - {{ ansilume_network_name }}
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-{{ ansilume_uid }}}
+        GROUP_ID: ${GID:-{{ ansilume_gid }}}
+    container_name: {{ ansilume_compose_project }}_queue_worker
+    restart: {{ ansilume_restart_policy }}
+    working_dir: /var/www
+    command: ["php", "yii", "worker/start"]
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+{% if ansilume_db_local %}
+      db:
+        condition: service_healthy
+{% endif %}
+{% if ansilume_redis_local %}
+      redis:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "php", "/var/www/yii", "health/check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - {{ ansilume_network_name }}
+
+{% for i in range(1, ansilume_runner_count + 1) %}
+  runner-{{ i }}:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${UID:-{{ ansilume_uid }}}
+        GROUP_ID: ${GID:-{{ ansilume_gid }}}
+    container_name: {{ ansilume_compose_project }}_runner_{{ i }}
+    restart: {{ ansilume_restart_policy }}
+    working_dir: /var/www
+    command: ["php", "yii", "runner/start"]
+    volumes:
+      - .:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/local.ini
+    environment:
+      - RUNNER_NAME=runner-{{ i }}
+      - RUNNER_BOOTSTRAP_SECRET=${RUNNER_BOOTSTRAP_SECRET}
+      - API_URL=http://nginx
+    depends_on:
+      nginx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /var/www/runtime/runner-runner-{{ i }}.token"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    networks:
+      - {{ ansilume_network_name }}
+
+{% endfor %}
+networks:
+  {{ ansilume_network_name }}:
+    driver: bridge
+
+{% if ansilume_db_local %}
+volumes:
+  db_data:
+{% endif %}

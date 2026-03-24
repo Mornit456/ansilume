@@ -1,0 +1,59 @@
+# {{ ansible_managed }}
+# Ansilume production environment — do not edit manually.
+
+# Application
+APP_ENV={{ ansilume_app_env }}
+YII_ENV={{ ansilume_yii_env }}
+YII_DEBUG={{ ansilume_yii_debug | ternary('1', '0') }}
+
+# Security
+COOKIE_VALIDATION_KEY={{ ansilume_cookie_validation_key }}
+APP_SECRET_KEY={{ ansilume_app_secret_key }}
+{% if ansilume_runner_bootstrap_secret | length > 0 %}
+RUNNER_BOOTSTRAP_SECRET={{ ansilume_runner_bootstrap_secret }}
+{% else %}
+RUNNER_BOOTSTRAP_SECRET=
+{% endif %}
+
+# Nginx
+NGINX_PORT={{ ansilume_nginx_port }}
+
+# Database
+DB_HOST={{ ansilume_db_host }}
+DB_PORT={{ ansilume_db_port }}
+DB_NAME={{ ansilume_db_name }}
+DB_USER={{ ansilume_db_user }}
+DB_PASSWORD={{ ansilume_db_password }}
+{% if ansilume_db_local %}
+DB_ROOT_PASSWORD={{ ansilume_db_root_password }}
+{% endif %}
+
+# Redis
+REDIS_HOST={{ ansilume_redis_host }}
+REDIS_PORT={{ ansilume_redis_port }}
+REDIS_DB={{ ansilume_redis_db }}
+
+# Runner
+RUNNER_MODE={{ ansilume_runner_mode }}
+RUNNER_DOCKER_IMAGE={{ ansilume_runner_docker_image }}
+
+# Mail / SMTP
+{% if ansilume_smtp_host | length > 0 %}
+SMTP_HOST={{ ansilume_smtp_host }}
+SMTP_PORT={{ ansilume_smtp_port }}
+SMTP_ENCRYPTION={{ ansilume_smtp_encryption }}
+SMTP_USER={{ ansilume_smtp_user }}
+SMTP_PASSWORD={{ ansilume_smtp_password }}
+{% else %}
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_ENCRYPTION=
+SMTP_USER=
+SMTP_PASSWORD=
+{% endif %}
+ADMIN_EMAIL={{ ansilume_admin_email }}
+SENDER_EMAIL={{ ansilume_sender_email }}
+
+# Container UID/GID
+UID={{ ansilume_uid }}
+GID={{ ansilume_gid }}

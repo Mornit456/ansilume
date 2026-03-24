@@ -1,0 +1,23 @@
+---
+# Override defaults for the ansilume group.
+# Store secrets in ansible-vault encrypted files or use --extra-vars.
+#
+# Example:
+#   ansilume_cookie_validation_key: "{{ vault_cookie_validation_key }}"
+#   ansilume_app_secret_key: "{{ vault_app_secret_key }}"
+#   ansilume_db_password: "{{ vault_db_password }}"
+#   ansilume_db_root_password: "{{ vault_db_root_password }}"
+#   ansilume_runner_bootstrap_secret: "{{ vault_runner_bootstrap_secret }}"
+#
+#   ansilume_nginx_port: 443
+#   ansilume_runner_count: 4
+#   ansilume_smtp_host: smtp.example.com
+#   ansilume_admin_email: ops@example.com
+#
+# For external database:
+#   ansilume_db_local: false
+#   ansilume_db_host: db.internal.example.com
+#   ansilume_db_port: 3306
+#   ansilume_db_name: ansilume
+#   ansilume_db_user: ansilume
+#   ansilume_db_password: "{{ vault_db_password }}"

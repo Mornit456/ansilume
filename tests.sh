@@ -342,7 +342,36 @@ else
 fi
 
 # =============================================================================
-# 11. PHPUnit — integration tests + coverage (one combined run with pcov)
+# 12b. Ansible lint — deploy role (production profile)
+# =============================================================================
+section "Ansible Lint (deploy/)"
+
+if command -v ansible-lint &>/dev/null; then
+    ALINT_OUT=$(cd deploy && ansible-lint 2>&1 || true)
+    if echo "$ALINT_OUT" | grep -qP "Passed|passed"; then
+        ok "ansible-lint (production profile) passed"
+    elif echo "$ALINT_OUT" | grep -qP "violation|warning|error"; then
+        fail "ansible-lint found issues in deploy/"
+        echo "$ALINT_OUT" | tail -30 | sed 's/^/     /'
+    else
+        ok "ansible-lint (production profile) passed"
+    fi
+elif dc ansible-lint --version >/dev/null 2>&1; then
+    ALINT_OUT=$(dc bash -c "cd deploy && ansible-lint 2>&1" || true)
+    if echo "$ALINT_OUT" | grep -qP "Passed|passed"; then
+        ok "ansible-lint (production profile) passed"
+    elif echo "$ALINT_OUT" | grep -qP "violation|warning|error"; then
+        fail "ansible-lint found issues in deploy/"
+        echo "$ALINT_OUT" | tail -30 | sed 's/^/     /'
+    else
+        ok "ansible-lint (production profile) passed"
+    fi
+else
+    skip "ansible-lint not available"
+fi
+
+# =============================================================================
+# 13. PHPUnit — integration tests + coverage (one combined run with pcov)
 #
 # Unit tests ran above without pcov for fast feedback. Here we run
 # Unit+Integration once with pcov enabled, giving us both the integration

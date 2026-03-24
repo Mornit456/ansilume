@@ -1,0 +1,38 @@
+---
+- name: Validate required secrets are set
+  ansible.builtin.assert:
+    that:
+      - ansilume_cookie_validation_key != "CHANGE-ME-INSECURE-DEFAULT"
+      - ansilume_app_secret_key != "CHANGE-ME-INSECURE-DEFAULT"
+      - ansilume_db_password != "CHANGE-ME-INSECURE-DEFAULT"
+      - not ansilume_db_local or ansilume_db_root_password != "CHANGE-ME-INSECURE-DEFAULT"
+    fail_msg: >-
+      Production secrets must be overridden. Set ansilume_cookie_validation_key,
+      ansilume_app_secret_key, ansilume_db_password, and (if using local DB)
+      ansilume_db_root_password to secure random values.
+    quiet: true
+  tags: [validate]
+
+- name: Verify Docker is installed
+  ansible.builtin.include_tasks: preflight.yaml
+  tags: [preflight]
+
+- name: Create system user and directories
+  ansible.builtin.include_tasks: system.yaml
+  tags: [system]
+
+- name: Deploy application source
+  ansible.builtin.include_tasks: source.yaml
+  tags: [source]
+
+- name: Template configuration files
+  ansible.builtin.include_tasks: config.yaml
+  tags: [config]
+
+- name: Start the stack
+  ansible.builtin.include_tasks: stack.yaml
+  tags: [stack]
+
+- name: Wait for healthy state
+  ansible.builtin.include_tasks: healthcheck.yaml
+  tags: [healthcheck]

@@ -1,0 +1,10 @@
+---
+- name: Build and start the ansilume stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ ansilume_install_dir }}"
+    project_name: "{{ ansilume_compose_project }}"
+    state: present
+    pull: always
+    build: always
+  become: true
+  become_user: "{{ ansilume_system_user }}"
