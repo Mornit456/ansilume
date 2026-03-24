@@ -12,3 +12,5 @@
 .phpunit.result.cache
 .composer.install.lock
 .migrate.lock
+__pycache__/
+*.pyc
