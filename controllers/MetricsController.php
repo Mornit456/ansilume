@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
-use app\components\WorkerHeartbeat;
 use app\models\Job;
 use app\models\JobHostSummary;
 use app\models\JobTask;
@@ -57,7 +56,6 @@ class MetricsController extends Controller
             'jobs'    => $this->collectJobs(),
             'tasks'   => $this->collectTasks(),
             'hosts'   => $this->collectHosts(),
-            'workers' => $this->collectWorkers(),
             'runners' => $this->collectRunners(),
             'queue'   => $this->collectQueue(),
         ];
@@ -234,23 +232,6 @@ class MetricsController extends Controller
         }
     }
 
-    private function collectWorkers(): array
-    {
-        try {
-            $workers = WorkerHeartbeat::all();
-            $now     = time();
-            $alive   = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
-            $stale   = count($workers) - count($alive);
-
-            return [
-                'alive' => count($alive),
-                'stale' => $stale,
-            ];
-        } catch (\Throwable) {
-            return ['alive' => 0, 'stale' => 0];
-        }
-    }
-
     private function collectRunners(): array
     {
         try {
@@ -388,16 +369,6 @@ class MetricsController extends Controller
         $lines[] = '# HELP ansilume_jobs_with_changes Jobs where at least one task made a change.';
         $lines[] = '# TYPE ansilume_jobs_with_changes gauge';
         $lines[] = 'ansilume_jobs_with_changes ' . $hs['jobs_with_changes'];
-
-        // Workers
-        $w = $metrics['workers'];
-        $lines[] = '# HELP ansilume_workers_alive Number of alive worker processes.';
-        $lines[] = '# TYPE ansilume_workers_alive gauge';
-        $lines[] = 'ansilume_workers_alive ' . $w['alive'];
-
-        $lines[] = '# HELP ansilume_workers_stale Number of stale worker processes.';
-        $lines[] = '# TYPE ansilume_workers_stale gauge';
-        $lines[] = 'ansilume_workers_stale ' . $w['stale'];
 
         // Runners
         $r = $metrics['runners'];

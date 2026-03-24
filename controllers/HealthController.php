@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
-use app\components\WorkerHeartbeat;
 use app\models\Job;
 use app\models\Runner;
 use app\models\RunnerGroup;
@@ -47,7 +46,7 @@ class HealthController extends Controller
         return [
             'status'  => $healthy ? 'ok' : 'degraded',
             'checks'  => $checks,
-            'workers' => $this->workerSummary(),
+            'runners' => $this->runnerSummary(),
             'queue'   => $this->queueSummary(),
         ];
     }
@@ -57,7 +56,7 @@ class HealthController extends Controller
         return [
             'database' => $this->checkDatabase(),
             'redis'    => $this->checkRedis(),
-            'worker'   => $this->checkWorker(),
+            'runners'  => $this->checkRunners(),
         ];
     }
 
@@ -86,55 +85,24 @@ class HealthController extends Controller
         \Yii::$app->response->statusCode = $code;
     }
 
-    protected function getWorkerHeartbeats(): array
-    {
-        return WorkerHeartbeat::all();
-    }
-
-    private function checkWorker(): array
+    protected function checkRunners(): array
     {
         try {
-            // Check both internal workers (Redis heartbeat) and runners (DB)
-            $workers = $this->getWorkerHeartbeats();
-            $now     = time();
-            $aliveWorkers = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
+            $counts = $this->getRunnerCounts();
 
-            $runnerCounts = $this->getRunnerCounts();
-            $totalAlive = count($aliveWorkers) + $runnerCounts['online'];
-
-            if ($totalAlive === 0) {
-                return ['ok' => false, 'error' => 'No active workers or runners'];
+            if ($counts['online'] === 0) {
+                return ['ok' => false, 'error' => 'No online runners'];
             }
 
-            return ['ok' => true, 'count' => $totalAlive];
+            return ['ok' => true, 'online' => $counts['online'], 'total' => $counts['total']];
         } catch (\Throwable) {
-            return ['ok' => false, 'error' => 'Worker check failed'];
+            return ['ok' => false, 'error' => 'Runner check failed'];
         }
     }
 
-    private function workerSummary(): array
+    private function runnerSummary(): array
     {
-        try {
-            $workers = WorkerHeartbeat::all();
-            $now     = time();
-            $alive   = array_filter($workers, fn($w) => ($now - ($w['seen_at'] ?? 0)) < WorkerHeartbeat::STALE_AFTER);
-
-            $runnerCounts = $this->getRunnerCounts();
-
-            return [
-                'count'   => count($alive),
-                'workers' => array_values(array_map(fn($w) => [
-                    'worker_id'  => $w['worker_id'],
-                    'hostname'   => $w['hostname'],
-                    'started_at' => $w['started_at'],
-                    'seen_at'    => $w['seen_at'],
-                    'age_s'      => $now - ($w['seen_at'] ?? $now),
-                ], $alive)),
-                'runners' => $runnerCounts,
-            ];
-        } catch (\Throwable) {
-            return ['count' => 0, 'workers' => [], 'runners' => ['total' => 0, 'online' => 0, 'offline' => 0]];
-        }
+        return $this->getRunnerCounts();
     }
 
     protected function getRunnerCounts(): array

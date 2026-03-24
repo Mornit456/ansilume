@@ -68,12 +68,10 @@ scrape_configs:
 | `ansilume_runners_online` | gauge | Runners that checked in within the last 120 seconds |
 | `ansilume_runners_offline` | gauge | Registered runners that are not responding |
 
-### Workers and queue
+### Queue
 
 | Metric | Type | Description |
 |--------|------|-------------|
-| `ansilume_workers_alive` | gauge | Number of alive internal worker processes (Redis heartbeat) |
-| `ansilume_workers_stale` | gauge | Workers that stopped sending heartbeats |
 | `ansilume_queue_pending` | gauge | Jobs waiting to be picked up |
 | `ansilume_queue_running` | gauge | Jobs currently executing |
 
@@ -91,9 +89,6 @@ ansilume_tasks_last_1h{status="changed"} / ignoring(status) ansilume_tasks_last_
 
 # Hosts with failures
 ansilume_hosts_with_failures
-
-# Worker availability
-ansilume_workers_alive
 
 # Runner availability
 ansilume_runners_online / ansilume_runners_total
@@ -139,7 +134,6 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
     "hosts_with_failures": 6,
     "jobs_with_changes": 85
   },
-  "workers": { "alive": 2, "stale": 0 },
   "runners": { "total": 4, "online": 2, "offline": 2 },
   "queue": { "pending": 1, "running": 2 }
 }
@@ -160,7 +154,7 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
 |-------|-------------|---------------|
 | `database` | Executes `SELECT 1` against the database | DB connection lost or server down |
 | `redis` | Writes a test key with 5s TTL | Redis connection lost or server down |
-| `worker` | Checks for alive workers (Redis heartbeat) and online runners (DB `last_seen_at`) | No workers or runners available to execute jobs |
+| `runners` | Checks for online runners (DB `last_seen_at`) | No runners available to execute jobs |
 
 ### Example response
 
@@ -170,24 +164,12 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
   "checks": {
     "database": { "ok": true, "latency_ms": null },
     "redis": { "ok": true },
-    "worker": { "ok": true, "count": 3 }
+    "runners": { "ok": true, "online": 2, "total": 4 }
   },
-  "workers": {
-    "count": 1,
-    "workers": [
-      {
-        "worker_id": "app-container:1",
-        "hostname": "app-container",
-        "started_at": 1711234567,
-        "seen_at": 1711234590,
-        "age_s": 12
-      }
-    ],
-    "runners": {
-      "total": 4,
-      "online": 2,
-      "offline": 2
-    }
+  "runners": {
+    "total": 4,
+    "online": 2,
+    "offline": 2
   },
   "queue": {
     "pending": 0,
@@ -198,7 +180,6 @@ ansilume_runners_online == 0 and ansilume_runners_total > 0
 
 ### Notes
 
-- The `worker.count` in `checks` is the sum of alive internal workers and online runners.
-- The `workers` section breaks these down separately: `workers` are PHP-FPM processes tracked via Redis heartbeats, `runners` are registered runner agents tracked via `last_seen_at` in the database.
+- Runners are registered runner agents tracked via `last_seen_at` in the database.
 - Runners are considered offline if they haven't checked in within 120 seconds.
 - No authentication required — restrict access via network rules if the endpoint should not be public.

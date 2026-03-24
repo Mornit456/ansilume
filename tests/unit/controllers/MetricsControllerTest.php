@@ -26,7 +26,6 @@ class MetricsControllerTest extends TestCase
         $this->assertArrayHasKey('jobs', $data);
         $this->assertArrayHasKey('tasks', $data);
         $this->assertArrayHasKey('hosts', $data);
-        $this->assertArrayHasKey('workers', $data);
         $this->assertArrayHasKey('runners', $data);
         $this->assertArrayHasKey('queue', $data);
     }
@@ -64,17 +63,6 @@ class MetricsControllerTest extends TestCase
         foreach (['pending', 'queued', 'running', 'succeeded', 'failed', 'canceled', 'timed_out'] as $s) {
             $this->assertArrayHasKey($s, $statuses, "Missing status: {$s}");
         }
-    }
-
-    public function testCollectWorkersKeys(): void
-    {
-        $ctrl = new MetricsController('metrics', \Yii::$app);
-        $workers = $ctrl->collect()['workers'];
-
-        $this->assertArrayHasKey('alive', $workers);
-        $this->assertArrayHasKey('stale', $workers);
-        $this->assertIsInt($workers['alive']);
-        $this->assertIsInt($workers['stale']);
     }
 
     public function testCollectQueueKeys(): void
@@ -125,7 +113,6 @@ class MetricsControllerTest extends TestCase
                 'hosts_with_failures' => 4,
                 'jobs_with_changes' => 35,
             ],
-            'workers' => ['alive' => 2, 'stale' => 1],
             'runners' => ['total' => 4, 'online' => 2, 'offline' => 2],
             'queue' => ['pending' => 8, 'running' => 2],
         ];
@@ -151,8 +138,6 @@ class MetricsControllerTest extends TestCase
             'ansilume_hosts_with_changes',
             'ansilume_hosts_with_failures',
             'ansilume_jobs_with_changes',
-            'ansilume_workers_alive',
-            'ansilume_workers_stale',
             'ansilume_runners_total',
             'ansilume_runners_online',
             'ansilume_runners_offline',
@@ -194,8 +179,6 @@ class MetricsControllerTest extends TestCase
         $this->assertStringContainsString('ansilume_database_up 1', $output);
         $this->assertStringContainsString('ansilume_redis_up 1', $output);
         $this->assertStringContainsString('ansilume_jobs_total 100', $output);
-        $this->assertStringContainsString('ansilume_workers_alive 2', $output);
-        $this->assertStringContainsString('ansilume_workers_stale 1', $output);
         $this->assertStringContainsString('ansilume_queue_pending 8', $output);
         $this->assertStringContainsString('ansilume_queue_running 2', $output);
         $this->assertStringContainsString('ansilume_jobs_avg_duration_seconds 42.5', $output);

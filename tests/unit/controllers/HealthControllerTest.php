@@ -4,167 +4,142 @@ declare(strict_types=1);
 
 namespace app\tests\unit\controllers;
 
-use app\components\WorkerHeartbeat;
 use app\controllers\HealthController;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for HealthController worker check logic.
+ * Tests for HealthController runner check logic.
  *
- * Critical regression covered: before the fix, the worker liveness check
- * was informational only and did not affect the HTTP status or "status" field.
- * A system with no running workers would still return {"status":"ok"} / HTTP 200.
+ * The health endpoint checks database, Redis, and runner availability.
+ * Runner counts come from the database (Runner model with last_seen_at).
+ * These tests stub getRunnerCounts() to control the runner state.
  */
 class HealthControllerTest extends TestCase
 {
     /**
-     * Build a HealthController with a stubbed worker heartbeat list.
-     *
-     * @param array[] $workers  Raw worker records as returned by WorkerHeartbeat::all().
+     * Build a HealthController with stubbed runner counts and optional DB/Redis stubs.
      */
-    private function makeController(array $workers): HealthController
+    private function makeController(array $runnerCounts, bool $dbOk = true, bool $redisOk = true): HealthController
     {
-        return new class('health', \Yii::$app, $workers) extends HealthController {
-            private array $fakeWorkers;
+        return new class('health', \Yii::$app, $runnerCounts, $dbOk, $redisOk) extends HealthController {
+            public int    $capturedStatus = 0;
+            private array $fakeRunnerCounts;
+            private bool  $fakeDbOk;
+            private bool  $fakeRedisOk;
 
-            public function __construct($id, $module, array $workers) {
+            public function __construct($id, $module, array $rc, bool $dbOk, bool $redisOk) {
                 parent::__construct($id, $module);
-                $this->fakeWorkers = $workers;
+                $this->fakeRunnerCounts = $rc;
+                $this->fakeDbOk         = $dbOk;
+                $this->fakeRedisOk      = $redisOk;
             }
 
-            protected function getWorkerHeartbeats(): array {
-                return $this->fakeWorkers;
+            protected function getRunnerCounts(): array { return $this->fakeRunnerCounts; }
+            protected function setHttpStatus(int $code): void { $this->capturedStatus = $code; }
+
+            // Expose private check methods for testing
+            public function testCheckRunners(): array {
+                return $this->checkRunners();
             }
         };
     }
 
-    private function workerRecord(int $seenAgo = 10): array
+    // ── checkRunners() ─────────────────────────────────────────────────────
+
+    public function testCheckRunnersReturnsFalseWhenNoRunners(): void
     {
-        return [
-            'worker_id'  => 'host:1234',
-            'hostname'   => 'host',
-            'started_at' => time() - 60,
-            'seen_at'    => time() - $seenAgo,
-        ];
-    }
-
-    // -------------------------------------------------------------------------
-    // checkWorker() — via reflection
-    // -------------------------------------------------------------------------
-
-    public function testCheckWorkerReturnsFalseWhenNoWorkers(): void
-    {
-        $ctrl = $this->makeController([]);
-        $ref  = new \ReflectionMethod($ctrl, 'checkWorker');
-        $ref->setAccessible(true);
-
-        $result = $ref->invoke($ctrl);
+        $ctrl = $this->makeController(['total' => 0, 'online' => 0, 'offline' => 0]);
+        $result = $ctrl->testCheckRunners();
 
         $this->assertFalse($result['ok']);
         $this->assertArrayHasKey('error', $result);
     }
 
-    public function testCheckWorkerReturnsTrueWhenActiveWorkerPresent(): void
+    public function testCheckRunnersReturnsFalseWhenAllOffline(): void
     {
-        $ctrl = $this->makeController([$this->workerRecord(seenAgo: 10)]);
-        $ref  = new \ReflectionMethod($ctrl, 'checkWorker');
-        $ref->setAccessible(true);
-
-        $result = $ref->invoke($ctrl);
-
-        $this->assertTrue($result['ok']);
-        $this->assertSame(1, $result['count']);
-    }
-
-    public function testCheckWorkerIgnoresStaleWorkers(): void
-    {
-        // Worker last seen way beyond STALE_AFTER threshold
-        $ctrl = $this->makeController([$this->workerRecord(seenAgo: WorkerHeartbeat::STALE_AFTER + 1)]);
-        $ref  = new \ReflectionMethod($ctrl, 'checkWorker');
-        $ref->setAccessible(true);
-
-        $result = $ref->invoke($ctrl);
+        $ctrl = $this->makeController(['total' => 4, 'online' => 0, 'offline' => 4]);
+        $result = $ctrl->testCheckRunners();
 
         $this->assertFalse($result['ok']);
     }
 
-    public function testCheckWorkerCountsOnlyAliveWorkers(): void
+    public function testCheckRunnersReturnsTrueWhenRunnersOnline(): void
     {
-        $workers = [
-            $this->workerRecord(seenAgo: 10),                              // alive
-            $this->workerRecord(seenAgo: WorkerHeartbeat::STALE_AFTER + 1), // stale
-        ];
-
-        $ctrl = $this->makeController($workers);
-        $ref  = new \ReflectionMethod($ctrl, 'checkWorker');
-        $ref->setAccessible(true);
-
-        $result = $ref->invoke($ctrl);
+        $ctrl = $this->makeController(['total' => 4, 'online' => 2, 'offline' => 2]);
+        $result = $ctrl->testCheckRunners();
 
         $this->assertTrue($result['ok']);
-        $this->assertSame(1, $result['count']);
+        $this->assertSame(2, $result['online']);
+        $this->assertSame(4, $result['total']);
     }
 
-    // -------------------------------------------------------------------------
-    // runChecks() — worker key must be present
-    // -------------------------------------------------------------------------
+    // ── runChecks() structure ──────────────────────────────────────────────
 
-    public function testRunChecksIncludesWorkerKey(): void
+    public function testRunChecksIncludesRunnersKey(): void
     {
-        $ctrl = $this->makeController([]);
+        $ctrl = $this->makeController(['total' => 1, 'online' => 1, 'offline' => 0]);
         $ref  = new \ReflectionMethod($ctrl, 'runChecks');
         $ref->setAccessible(true);
 
         $checks = $ref->invoke($ctrl);
 
-        $this->assertArrayHasKey('worker', $checks,
-            'runChecks() must include a worker check so missing workers affect the health status.'
+        $this->assertArrayHasKey('runners', $checks,
+            'runChecks() must include a runners check so missing runners affect the health status.'
         );
+        $this->assertArrayHasKey('database', $checks);
+        $this->assertArrayHasKey('redis', $checks);
     }
 
-    // -------------------------------------------------------------------------
-    // Full action — HTTP status reflects worker state
-    // -------------------------------------------------------------------------
+    // ── Full action — HTTP status ──────────────────────────────────────────
 
-    public function testActionIndexReturnsOkStatusWhenWorkerAlive(): void
+    public function testActionIndexReturnsOkWhenRunnersOnline(): void
     {
-        $ctrl = new class('health', \Yii::$app, [$this->workerRecord()]) extends HealthController {
-            public int    $capturedStatus = 0;
-            private array $fakeWorkers;
-            public function __construct($id, $module, array $w) {
-                parent::__construct($id, $module);
-                $this->fakeWorkers = $w;
-            }
-            protected function getWorkerHeartbeats(): array { return $this->fakeWorkers; }
-            protected function checkDatabase(): array { return ['ok' => true]; }
-            protected function checkRedis(): array    { return ['ok' => true]; }
-            protected function setHttpStatus(int $code): void { $this->capturedStatus = $code; }
-        };
-
+        $ctrl = $this->makeController(['total' => 2, 'online' => 2, 'offline' => 0]);
         $response = $ctrl->actionIndex();
 
         $this->assertSame('ok', $response['status']);
         $this->assertSame(200, $ctrl->capturedStatus);
     }
 
-    public function testActionIndexReturnsDegradedWhenNoWorkers(): void
+    public function testActionIndexReturnsDegradedWhenNoRunnersOnline(): void
     {
-        $ctrl = new class('health', \Yii::$app) extends HealthController {
-            public int $capturedStatus = 0;
-            protected function getWorkerHeartbeats(): array { return []; }
-            protected function checkDatabase(): array { return ['ok' => true]; }
-            protected function checkRedis(): array    { return ['ok' => true]; }
-            protected function setHttpStatus(int $code): void { $this->capturedStatus = $code; }
-        };
-
+        $ctrl = $this->makeController(['total' => 2, 'online' => 0, 'offline' => 2]);
         $response = $ctrl->actionIndex();
 
-        $this->assertSame('degraded', $response['status'],
-            'Health status must be degraded when no workers are alive.'
-        );
-        $this->assertSame(503, $ctrl->capturedStatus,
-            'HTTP status must be 503 when no workers are alive.'
-        );
-        $this->assertFalse($response['checks']['worker']['ok']);
+        $this->assertSame('degraded', $response['status']);
+        $this->assertSame(503, $ctrl->capturedStatus);
+        $this->assertFalse($response['checks']['runners']['ok']);
+    }
+
+    public function testActionIndexReturnsDegradedWhenNoRunnersRegistered(): void
+    {
+        $ctrl = $this->makeController(['total' => 0, 'online' => 0, 'offline' => 0]);
+        $response = $ctrl->actionIndex();
+
+        $this->assertSame('degraded', $response['status']);
+        $this->assertSame(503, $ctrl->capturedStatus);
+    }
+
+    // ── Response structure ─────────────────────────────────────────────────
+
+    public function testResponseIncludesRunnersSection(): void
+    {
+        $ctrl = $this->makeController(['total' => 4, 'online' => 2, 'offline' => 2]);
+        $response = $ctrl->actionIndex();
+
+        $this->assertArrayHasKey('runners', $response);
+        $this->assertSame(4, $response['runners']['total']);
+        $this->assertSame(2, $response['runners']['online']);
+        $this->assertSame(2, $response['runners']['offline']);
+    }
+
+    public function testResponseIncludesQueueSection(): void
+    {
+        $ctrl = $this->makeController(['total' => 1, 'online' => 1, 'offline' => 0]);
+        $response = $ctrl->actionIndex();
+
+        $this->assertArrayHasKey('queue', $response);
+        $this->assertArrayHasKey('pending', $response['queue']);
+        $this->assertArrayHasKey('running', $response['queue']);
     }
 }
