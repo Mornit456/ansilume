@@ -26,7 +26,7 @@
 
 ## Overview
 
-Ansilume is a **production-ready, self-hostable automation control plane** built for infrastructure teams. It gives you a reliable web interface to manage and execute Ansible workloads — with full auditability, role-based access control, and zero execution in the web request lifecycle.
+Ansilume /ˈæn.sɪ.luːm/ is a **production-ready, self-hostable automation control plane** built for infrastructure teams. It gives you a reliable web interface to manage and execute Ansible workloads — with full auditability, role-based access control, and zero execution in the web request lifecycle.
 
 Think of it as a lightweight, self-hosted alternative to AWX or Semaphore — designed for teams that want **operational clarity** over feature bloat.
 
