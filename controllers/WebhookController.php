@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Webhook;
 use yii\data\ActiveDataProvider;
 use yii\web\NotFoundHttpException;
@@ -47,8 +48,8 @@ class WebhookController extends BaseController
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log(
-                    'webhook.created', 'webhook', $model->id,
-                    \Yii::$app->user->id,
+                    AuditLog::ACTION_WEBHOOK_CREATED, 'webhook', $model->id,
+                    null,
                     ['name' => $model->name, 'url' => $model->url]
                 );
                 \Yii::$app->session->setFlash('success', "Webhook \"{$model->name}\" created.");
@@ -66,8 +67,8 @@ class WebhookController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log(
-                    'webhook.updated', 'webhook', $model->id,
-                    \Yii::$app->user->id,
+                    AuditLog::ACTION_WEBHOOK_UPDATED, 'webhook', $model->id,
+                    null,
                     ['name' => $model->name]
                 );
                 \Yii::$app->session->setFlash('success', "Webhook \"{$model->name}\" updated.");
@@ -84,8 +85,8 @@ class WebhookController extends BaseController
         $name  = $model->name;
         $model->delete();
         \Yii::$app->get('auditService')->log(
-            'webhook.deleted', 'webhook', $id,
-            \Yii::$app->user->id,
+            AuditLog::ACTION_WEBHOOK_DELETED, 'webhook', $id,
+            null,
             ['name' => $name]
         );
         \Yii::$app->session->setFlash('success', "Webhook \"{$name}\" deleted.");

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Job;
 use app\models\JobHostSummary;
 use app\models\JobTemplate;
@@ -11,7 +12,6 @@ use app\models\LoginForm;
 use app\models\Project;
 use app\models\Runner;
 use app\models\RunnerGroup;
-use app\services\AuditService;
 use yii\web\Response;
 
 class SiteController extends BaseController
@@ -149,13 +149,13 @@ class SiteController extends BaseController
         $model = new LoginForm();
         if ($model->load(\Yii::$app->request->post()) && $model->login()) {
             \Yii::$app->get('auditService')->log(
-                AuditService::ACTION_USER_LOGIN, null, null, null, ['username' => $model->username]
+                AuditLog::ACTION_USER_LOGIN, null, null, null, ['username' => $model->username]
             );
             return $this->goBack();
         }
         if ($model->hasErrors()) {
             \Yii::$app->get('auditService')->log(
-                AuditService::ACTION_USER_LOGIN_FAILED, null, null, null, ['username' => $model->username]
+                AuditLog::ACTION_USER_LOGIN_FAILED, null, null, null, ['username' => $model->username]
             );
         }
         $model->password = '';
@@ -164,7 +164,7 @@ class SiteController extends BaseController
 
     public function actionLogout(): Response
     {
-        \Yii::$app->get('auditService')->log(AuditService::ACTION_USER_LOGOUT);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_USER_LOGOUT);
         \Yii::$app->user->logout();
         return $this->goHome();
     }

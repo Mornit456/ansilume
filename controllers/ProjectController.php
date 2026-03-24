@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Credential;
 use app\models\Project;
-use app\services\AuditService;
 use app\services\LintService;
 use app\services\ProjectAccessChecker;
 use app\services\ProjectService;
@@ -187,7 +187,7 @@ class ProjectController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->get('auditService')->log('project.created', 'project', $model->id, null, ['name' => $model->name]);
+                \Yii::$app->get('auditService')->log(AuditLog::ACTION_PROJECT_CREATED, 'project', $model->id, null, ['name' => $model->name]);
                 if ($model->scm_type === Project::SCM_TYPE_GIT && $model->scm_url) {
                     /** @var ProjectService $svc */
                     $svc = \Yii::$app->get('projectService');
@@ -207,7 +207,7 @@ class ProjectController extends BaseController
         $model = $this->findModel($id);
         $this->requireAccess($model);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->get('auditService')->log('project.updated', 'project', $model->id, null, ['name' => $model->name]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_PROJECT_UPDATED, 'project', $model->id, null, ['name' => $model->name]);
             if ($model->scm_type === Project::SCM_TYPE_GIT && $model->scm_url) {
                 /** @var ProjectService $svc */
                 $svc = \Yii::$app->get('projectService');
@@ -234,7 +234,7 @@ class ProjectController extends BaseController
 
         $name = $model->name;
         $model->delete();
-        \Yii::$app->get('auditService')->log('project.deleted', 'project', $id, null, ['name' => $name]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_PROJECT_DELETED, 'project', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', "Project \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
@@ -246,6 +246,7 @@ class ProjectController extends BaseController
         /** @var LintService $lintSvc */
         $lintSvc = \Yii::$app->get('lintService');
         $lintSvc->runForProject($model);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_PROJECT_LINTED, 'project', $model->id, null, ['name' => $model->name]);
         \Yii::$app->session->setFlash('success', "Lint completed for \"{$model->name}\".");
         return $this->redirect(['view', 'id' => $id]);
     }
@@ -261,6 +262,7 @@ class ProjectController extends BaseController
         /** @var ProjectService $svc */
         $svc = \Yii::$app->get('projectService');
         $svc->queueSync($model);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_PROJECT_SYNCED, 'project', $model->id, null, ['name' => $model->name]);
         \Yii::$app->session->setFlash('success', "Sync queued for \"{$model->name}\".");
         return $this->redirect(['view', 'id' => $id]);
     }

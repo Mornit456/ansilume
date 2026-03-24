@@ -24,7 +24,8 @@ return [
             'class' => 'yii\rbac\DbManager',
         ],
         'auditService' => [
-            'class' => 'app\services\AuditService',
+            'class'   => 'app\services\AuditService',
+            'targets' => [new \app\services\audit\DatabaseAuditTarget()],
         ],
         'jobLaunchService' => [
             'class' => 'app\services\JobLaunchService',

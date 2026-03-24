@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\models\ApiToken;
+use app\models\AuditLog;
 use yii\filters\AccessControl;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -46,7 +47,8 @@ class ProfileController extends BaseController
             return $this->redirect(['tokens']);
         }
 
-        ['raw' => $raw] = ApiToken::generate((int)\Yii::$app->user->id, $name);
+        ['raw' => $raw, 'token' => $tokenModel] = ApiToken::generate((int)\Yii::$app->user->id, $name);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_API_TOKEN_CREATED, 'api_token', $tokenModel->id, null, ['name' => $name]);
 
         // Store raw token in session flash — displayed once, never again
         \Yii::$app->session->setFlash('new_token', $raw);
@@ -60,8 +62,10 @@ class ProfileController extends BaseController
         if ($token === null) {
             throw new NotFoundHttpException('Token not found.');
         }
+        $tokenName = $token->name;
         $token->delete();
-        \Yii::$app->session->setFlash('success', "Token \"{$token->name}\" revoked.");
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_API_TOKEN_DELETED, 'api_token', $id, null, ['name' => $tokenName]);
+        \Yii::$app->session->setFlash('success', "Token \"{$tokenName}\" revoked.");
         return $this->redirect(['tokens']);
     }
 }

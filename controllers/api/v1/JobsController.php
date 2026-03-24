@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers\api\v1;
 
+use app\models\AuditLog;
 use app\models\Job;
 use app\models\JobSearchForm;
 use app\models\JobTemplate;
@@ -98,6 +99,7 @@ class JobsController extends BaseApiController
         $job->status      = Job::STATUS_CANCELED;
         $job->finished_at = time();
         $job->save(false);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_JOB_CANCELED, 'job', $job->id);
 
         return $this->success($this->serializeJob($job));
     }

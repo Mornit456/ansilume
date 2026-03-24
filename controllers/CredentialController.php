@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Credential;
-use app\services\AuditService;
 use app\services\CredentialService;
 use yii\data\ActiveDataProvider;
 use yii\web\NotFoundHttpException;
@@ -81,7 +81,7 @@ class CredentialController extends BaseController
                 $secrets = $this->extractSecrets($model->credential_type, $cs);
                 if ($cs->storeSecrets($model, $secrets)) {
                     \Yii::$app->get('auditService')->log(
-                        AuditService::ACTION_CREDENTIAL_CREATED,
+                        AuditLog::ACTION_CREDENTIAL_CREATED,
                         'credential', $model->id, null,
                         ['name' => $model->name, 'type' => $model->credential_type]
                     );
@@ -107,7 +107,7 @@ class CredentialController extends BaseController
                     $model->save();
                 }
                 \Yii::$app->get('auditService')->log(
-                    AuditService::ACTION_CREDENTIAL_UPDATED,
+                    AuditLog::ACTION_CREDENTIAL_UPDATED,
                     'credential', $model->id, null, ['name' => $model->name]
                 );
                 \Yii::$app->session->setFlash('success', "Credential \"{$model->name}\" updated.");
@@ -140,7 +140,7 @@ class CredentialController extends BaseController
         $model = $this->findModel($id);
         $name  = $model->name;
         \Yii::$app->get('auditService')->log(
-            AuditService::ACTION_CREDENTIAL_DELETED, 'credential', $id, null, ['name' => $name]
+            AuditLog::ACTION_CREDENTIAL_DELETED, 'credential', $id, null, ['name' => $name]
         );
         $model->delete();
         \Yii::$app->session->setFlash('success', "Credential \"{$name}\" deleted.");

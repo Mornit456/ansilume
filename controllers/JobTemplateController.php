@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Credential;
 use app\models\Inventory;
 use app\models\JobTemplate;
@@ -72,7 +73,7 @@ class JobTemplateController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->get('auditService')->log('job-template.created', 'job-template', $model->id, null, ['name' => $model->name]);
+                \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEMPLATE_CREATED, 'job_template', $model->id, null, ['name' => $model->name]);
                 /** @var \app\services\LintService $lintService */
                 $lintService = \Yii::$app->get('lintService');
                 $lintService->runForTemplate($model);
@@ -87,7 +88,7 @@ class JobTemplateController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->get('auditService')->log('job-template.updated', 'job-template', $model->id, null, ['name' => $model->name]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEMPLATE_UPDATED, 'job_template', $model->id, null, ['name' => $model->name]);
             /** @var \app\services\LintService $lintService */
             $lintService = \Yii::$app->get('lintService');
             $lintService->runForTemplate($model);
@@ -102,7 +103,7 @@ class JobTemplateController extends BaseController
         $model = $this->findModel($id);
         $name  = $model->name;
         $model->delete();
-        \Yii::$app->get('auditService')->log('job-template.deleted', 'job-template', $id, null, ['name' => $name]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEMPLATE_DELETED, 'job_template', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', "Template \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
@@ -135,7 +136,7 @@ class JobTemplateController extends BaseController
         $model = $this->findModel($id);
         $model->generateTriggerToken();
         \Yii::$app->get('auditService')->log(
-            'job-template.trigger-token.generated', 'job_template', $id,
+            AuditLog::ACTION_TEMPLATE_TRIGGER_TOKEN_GENERATED, 'job_template', $id,
             \Yii::$app->user->id,
             ['name' => $model->name]
         );
@@ -150,7 +151,7 @@ class JobTemplateController extends BaseController
         $model = $this->findModel($id);
         $model->revokeTriggerToken();
         \Yii::$app->get('auditService')->log(
-            'job-template.trigger-token.revoked', 'job_template', $id,
+            AuditLog::ACTION_TEMPLATE_TRIGGER_TOKEN_REVOKED, 'job_template', $id,
             \Yii::$app->user->id,
             ['name' => $model->name]
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Project;
 use app\models\Team;
 use app\models\TeamMember;
@@ -73,7 +74,7 @@ class TeamController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->get('auditService')->log('team.created', 'team', $model->id, \Yii::$app->user->id, ['name' => $model->name]);
+                \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_CREATED, 'team', $model->id, null, ['name' => $model->name]);
                 \Yii::$app->session->setFlash('success', "Team \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -85,7 +86,7 @@ class TeamController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->get('auditService')->log('team.updated', 'team', $model->id, \Yii::$app->user->id, ['name' => $model->name]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_UPDATED, 'team', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', "Team \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
@@ -97,7 +98,7 @@ class TeamController extends BaseController
         $model = $this->findModel($id);
         $name  = $model->name;
         $model->delete();
-        \Yii::$app->get('auditService')->log('team.deleted', 'team', $id, \Yii::$app->user->id, ['name' => $name]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_DELETED, 'team', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', "Team \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }
@@ -116,6 +117,7 @@ class TeamController extends BaseController
         if (!$member->save()) {
             \Yii::$app->session->setFlash('danger', 'Could not add member: ' . json_encode($member->errors));
         } else {
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_MEMBER_ADDED, 'team', $team->id, null, ['user_id' => $userId]);
             \Yii::$app->session->setFlash('success', 'Member added.');
         }
         return $this->redirect(['view', 'id' => $id]);
@@ -124,6 +126,7 @@ class TeamController extends BaseController
     public function actionRemoveMember(int $id, int $userId): Response
     {
         TeamMember::deleteAll(['team_id' => $id, 'user_id' => $userId]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_MEMBER_REMOVED, 'team', $id, null, ['user_id' => $userId]);
         \Yii::$app->session->setFlash('success', 'Member removed.');
         return $this->redirect(['view', 'id' => $id]);
     }
@@ -147,6 +150,7 @@ class TeamController extends BaseController
         if (!$tp->save()) {
             \Yii::$app->session->setFlash('danger', 'Could not add project: ' . json_encode($tp->errors));
         } else {
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_PROJECT_ADDED, 'team', $team->id, null, ['project_id' => $projectId, 'role' => $role]);
             \Yii::$app->session->setFlash('success', 'Project access granted.');
         }
         return $this->redirect(['view', 'id' => $id]);
@@ -155,6 +159,7 @@ class TeamController extends BaseController
     public function actionRemoveProject(int $id, int $projectId): Response
     {
         TeamProject::deleteAll(['team_id' => $id, 'project_id' => $projectId]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_TEAM_PROJECT_REMOVED, 'team', $id, null, ['project_id' => $projectId]);
         \Yii::$app->session->setFlash('success', 'Project access removed.');
         return $this->redirect(['view', 'id' => $id]);
     }

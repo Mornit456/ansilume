@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Runner;
 use app\models\RunnerGroup;
 use yii\web\NotFoundHttpException;
@@ -51,6 +52,7 @@ class RunnerController extends BaseController
             return $this->redirect(['/runner-group/view', 'id' => $group->id]);
         }
 
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_CREATED, 'runner', $model->id, null, ['name' => $model->name, 'group_id' => $group->id]);
         \Yii::$app->session->setFlash('runner_token', [
             'runner_id'   => $model->id,
             'runner_name' => $model->name,
@@ -64,9 +66,11 @@ class RunnerController extends BaseController
     {
         $runner  = $this->findModel($id);
         $groupId = $runner->runner_group_id;
+        $name    = $runner->name;
         $runner->delete();
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_DELETED, 'runner', $id, null, ['name' => $name, 'group_id' => $groupId]);
 
-        \Yii::$app->session->setFlash('success', "Runner \"{$runner->name}\" deleted.");
+        \Yii::$app->session->setFlash('success', "Runner \"{$name}\" deleted.");
         return $this->redirect(['/runner-group/view', 'id' => $groupId]);
     }
 
@@ -77,6 +81,7 @@ class RunnerController extends BaseController
 
         $runner->token_hash = $token['hash'];
         $runner->save(false);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_TOKEN_REGENERATED, 'runner', $runner->id, null, ['name' => $runner->name]);
 
         \Yii::$app->session->setFlash('runner_token', [
             'runner_id'   => $runner->id,

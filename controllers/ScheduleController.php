@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\JobTemplate;
 use app\models\Schedule;
 use yii\data\ActiveDataProvider;
@@ -54,8 +55,8 @@ class ScheduleController extends BaseController
             $model->computeNextRunAt();
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log(
-                    'schedule.created', 'schedule', $model->id,
-                    \Yii::$app->user->id,
+                    AuditLog::ACTION_SCHEDULE_CREATED, 'schedule', $model->id,
+                    null,
                     ['name' => $model->name, 'cron' => $model->cron_expression]
                 );
                 \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" created.");
@@ -77,8 +78,8 @@ class ScheduleController extends BaseController
             $model->computeNextRunAt();
             if ($model->save()) {
                 \Yii::$app->get('auditService')->log(
-                    'schedule.updated', 'schedule', $model->id,
-                    \Yii::$app->user->id,
+                    AuditLog::ACTION_SCHEDULE_UPDATED, 'schedule', $model->id,
+                    null,
                     ['name' => $model->name]
                 );
                 \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" updated.");
@@ -98,8 +99,8 @@ class ScheduleController extends BaseController
         $name  = $model->name;
         $model->delete();
         \Yii::$app->get('auditService')->log(
-            'schedule.deleted', 'schedule', $id,
-            \Yii::$app->user->id,
+            AuditLog::ACTION_SCHEDULE_DELETED, 'schedule', $id,
+            null,
             ['name' => $name]
         );
         \Yii::$app->session->setFlash('success', "Schedule \"{$name}\" deleted.");
@@ -115,6 +116,7 @@ class ScheduleController extends BaseController
         }
         $model->save(false, ['enabled', 'next_run_at', 'updated_at']);
         $state = $model->enabled ? 'enabled' : 'disabled';
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_SCHEDULE_TOGGLED, 'schedule', $model->id, null, ['name' => $model->name, 'enabled' => $model->enabled]);
         \Yii::$app->session->setFlash('success', "Schedule \"{$model->name}\" {$state}.");
         return $this->redirect(['index']);
     }

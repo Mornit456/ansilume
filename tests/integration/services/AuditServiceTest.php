@@ -6,6 +6,7 @@ namespace app\tests\unit\services;
 
 use app\models\AuditLog;
 use app\services\AuditService;
+use app\services\audit\DatabaseAuditTarget;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,6 +18,7 @@ class AuditServiceTest extends TestCase
     public function testLogCreatesAuditRecord(): void
     {
         $service = new AuditService();
+        $service->targets = [new DatabaseAuditTarget()];
         $before  = (int)AuditLog::find()->count();
 
         $service->log('test.action', 'job', 42, null, ['key' => 'value']);

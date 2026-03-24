@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Job;
 use app\models\JobLog;
 use app\models\JobSearchForm;
@@ -11,7 +12,6 @@ use app\models\JobTask;
 use app\models\JobTemplate;
 use app\models\RunnerGroup;
 use app\models\User;
-use app\services\AuditService;
 use app\services\JobLaunchService;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -87,7 +87,7 @@ class JobController extends BaseController
         $job->finished_at = time();
         $job->save(false);
 
-        \Yii::$app->get('auditService')->log(AuditService::ACTION_JOB_CANCELED, 'job', $job->id);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_JOB_CANCELED, 'job', $job->id);
         \Yii::$app->session->setFlash('success', "Job #{$job->id} canceled.");
         return $this->redirect(['view', 'id' => $id]);
     }

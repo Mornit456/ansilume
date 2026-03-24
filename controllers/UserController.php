@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\User;
 use app\models\UserForm;
 use yii\data\ActiveDataProvider;
@@ -50,7 +51,7 @@ class UserController extends BaseController
 
         if ($form->load(\Yii::$app->request->post()) && $form->save()) {
             $newUser = $form->getUser();
-            \Yii::$app->get('auditService')->log('user.created', 'user', $newUser->id, null, ['username' => $form->username]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_USER_CREATED, 'user', $newUser->id, null, ['username' => $form->username]);
             \Yii::$app->session->setFlash('success', "User \"{$form->username}\" created.");
             return $this->redirect(['view', 'id' => $newUser->id]);
         }
@@ -67,7 +68,7 @@ class UserController extends BaseController
         $this->guardLastSuperadmin($user);
 
         if ($form->load(\Yii::$app->request->post()) && $form->save()) {
-            \Yii::$app->get('auditService')->log('user.updated', 'user', $user->id, null, ['username' => $form->username]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_USER_UPDATED, 'user', $user->id, null, ['username' => $form->username]);
             \Yii::$app->session->setFlash('success', "User \"{$form->username}\" updated.");
             return $this->redirect(['view', 'id' => $user->id]);
         }
@@ -84,7 +85,7 @@ class UserController extends BaseController
         $username = $user->username;
         $user->delete();
 
-        \Yii::$app->get('auditService')->log('user.deleted', 'user', $id, null, ['username' => $username]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_USER_DELETED, 'user', $id, null, ['username' => $username]);
         \Yii::$app->session->setFlash('success', "User \"{$username}\" deleted.");
         return $this->redirect(['index']);
     }
@@ -100,7 +101,7 @@ class UserController extends BaseController
         $user->save(false);
 
         $label = $user->status === User::STATUS_ACTIVE ? 'activated' : 'deactivated';
-        \Yii::$app->get('auditService')->log('user.status_changed', 'user', $id, null, ['username' => $user->username, 'status' => $label]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_USER_STATUS_CHANGED, 'user', $id, null, ['username' => $user->username, 'status' => $label]);
         \Yii::$app->session->setFlash('success', "User \"{$user->username}\" {$label}.");
         return $this->redirect(['view', 'id' => $id]);
     }

@@ -93,7 +93,17 @@ $config = [
             'ttr'     => 3600,
         ],
         'auditService' => [
-            'class' => 'app\services\AuditService',
+            'class'   => 'app\services\AuditService',
+            'targets' => call_user_func(static function (): array {
+                $targets = [new \app\services\audit\DatabaseAuditTarget()];
+                if (filter_var(getenv('AUDIT_SYSLOG_ENABLED'), FILTER_VALIDATE_BOOLEAN)) {
+                    $targets[] = new \app\services\audit\SyslogAuditTarget(
+                        getenv('AUDIT_SYSLOG_IDENT') ?: 'ansilume',
+                        getenv('AUDIT_SYSLOG_FACILITY') ?: 'LOG_LOCAL0',
+                    );
+                }
+                return $targets;
+            }),
         ],
         'projectService' => [
             'class'         => 'app\services\ProjectService',

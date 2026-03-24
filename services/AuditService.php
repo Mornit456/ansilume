@@ -5,25 +5,75 @@ declare(strict_types=1);
 namespace app\services;
 
 use app\models\AuditLog;
+use app\services\audit\AuditTargetInterface;
 use yii\base\Component;
 
 /**
- * Writes immutable audit log entries.
+ * Dispatches immutable audit log entries to one or more targets.
+ *
+ * By default, entries are written to the database. Additional targets
+ * (syslog, Splunk HEC, etc.) can be configured via the $targets property.
+ *
  * Never pass raw secrets in $context — callers are responsible for redaction.
  */
 class AuditService extends Component
 {
-    // Re-export constants for convenience
-    public const ACTION_USER_LOGIN        = AuditLog::ACTION_USER_LOGIN;
-    public const ACTION_USER_LOGOUT       = AuditLog::ACTION_USER_LOGOUT;
-    public const ACTION_USER_LOGIN_FAILED = AuditLog::ACTION_USER_LOGIN_FAILED;
-    public const ACTION_JOB_LAUNCHED      = AuditLog::ACTION_JOB_LAUNCHED;
-    public const ACTION_JOB_CANCELED      = AuditLog::ACTION_JOB_CANCELED;
-    public const ACTION_JOB_STARTED       = AuditLog::ACTION_JOB_STARTED;
-    public const ACTION_JOB_FINISHED      = AuditLog::ACTION_JOB_FINISHED;
-    public const ACTION_CREDENTIAL_CREATED = AuditLog::ACTION_CREDENTIAL_CREATED;
-    public const ACTION_CREDENTIAL_UPDATED = AuditLog::ACTION_CREDENTIAL_UPDATED;
-    public const ACTION_CREDENTIAL_DELETED = AuditLog::ACTION_CREDENTIAL_DELETED;
+    // Re-export constants for convenience — kept in sync with AuditLog
+    public const ACTION_USER_LOGIN          = AuditLog::ACTION_USER_LOGIN;
+    public const ACTION_USER_LOGOUT         = AuditLog::ACTION_USER_LOGOUT;
+    public const ACTION_USER_LOGIN_FAILED   = AuditLog::ACTION_USER_LOGIN_FAILED;
+    public const ACTION_USER_CREATED        = AuditLog::ACTION_USER_CREATED;
+    public const ACTION_USER_UPDATED        = AuditLog::ACTION_USER_UPDATED;
+    public const ACTION_USER_DELETED        = AuditLog::ACTION_USER_DELETED;
+    public const ACTION_USER_STATUS_CHANGED = AuditLog::ACTION_USER_STATUS_CHANGED;
+    public const ACTION_PROJECT_CREATED     = AuditLog::ACTION_PROJECT_CREATED;
+    public const ACTION_PROJECT_UPDATED     = AuditLog::ACTION_PROJECT_UPDATED;
+    public const ACTION_PROJECT_DELETED     = AuditLog::ACTION_PROJECT_DELETED;
+    public const ACTION_PROJECT_SYNCED      = AuditLog::ACTION_PROJECT_SYNCED;
+    public const ACTION_PROJECT_LINTED      = AuditLog::ACTION_PROJECT_LINTED;
+    public const ACTION_INVENTORY_CREATED   = AuditLog::ACTION_INVENTORY_CREATED;
+    public const ACTION_INVENTORY_UPDATED   = AuditLog::ACTION_INVENTORY_UPDATED;
+    public const ACTION_INVENTORY_DELETED   = AuditLog::ACTION_INVENTORY_DELETED;
+    public const ACTION_CREDENTIAL_CREATED  = AuditLog::ACTION_CREDENTIAL_CREATED;
+    public const ACTION_CREDENTIAL_UPDATED  = AuditLog::ACTION_CREDENTIAL_UPDATED;
+    public const ACTION_CREDENTIAL_DELETED  = AuditLog::ACTION_CREDENTIAL_DELETED;
+    public const ACTION_TEMPLATE_CREATED    = AuditLog::ACTION_TEMPLATE_CREATED;
+    public const ACTION_TEMPLATE_UPDATED    = AuditLog::ACTION_TEMPLATE_UPDATED;
+    public const ACTION_TEMPLATE_DELETED    = AuditLog::ACTION_TEMPLATE_DELETED;
+    public const ACTION_TEMPLATE_TRIGGER_TOKEN_GENERATED = AuditLog::ACTION_TEMPLATE_TRIGGER_TOKEN_GENERATED;
+    public const ACTION_TEMPLATE_TRIGGER_TOKEN_REVOKED   = AuditLog::ACTION_TEMPLATE_TRIGGER_TOKEN_REVOKED;
+    public const ACTION_JOB_LAUNCHED        = AuditLog::ACTION_JOB_LAUNCHED;
+    public const ACTION_JOB_CANCELED        = AuditLog::ACTION_JOB_CANCELED;
+    public const ACTION_JOB_STARTED         = AuditLog::ACTION_JOB_STARTED;
+    public const ACTION_JOB_FINISHED        = AuditLog::ACTION_JOB_FINISHED;
+    public const ACTION_TEAM_CREATED        = AuditLog::ACTION_TEAM_CREATED;
+    public const ACTION_TEAM_UPDATED        = AuditLog::ACTION_TEAM_UPDATED;
+    public const ACTION_TEAM_DELETED        = AuditLog::ACTION_TEAM_DELETED;
+    public const ACTION_TEAM_MEMBER_ADDED   = AuditLog::ACTION_TEAM_MEMBER_ADDED;
+    public const ACTION_TEAM_MEMBER_REMOVED = AuditLog::ACTION_TEAM_MEMBER_REMOVED;
+    public const ACTION_TEAM_PROJECT_ADDED   = AuditLog::ACTION_TEAM_PROJECT_ADDED;
+    public const ACTION_TEAM_PROJECT_REMOVED = AuditLog::ACTION_TEAM_PROJECT_REMOVED;
+    public const ACTION_SCHEDULE_CREATED    = AuditLog::ACTION_SCHEDULE_CREATED;
+    public const ACTION_SCHEDULE_UPDATED    = AuditLog::ACTION_SCHEDULE_UPDATED;
+    public const ACTION_SCHEDULE_DELETED    = AuditLog::ACTION_SCHEDULE_DELETED;
+    public const ACTION_SCHEDULE_TOGGLED    = AuditLog::ACTION_SCHEDULE_TOGGLED;
+    public const ACTION_RUNNER_GROUP_CREATED = AuditLog::ACTION_RUNNER_GROUP_CREATED;
+    public const ACTION_RUNNER_GROUP_UPDATED = AuditLog::ACTION_RUNNER_GROUP_UPDATED;
+    public const ACTION_RUNNER_GROUP_DELETED = AuditLog::ACTION_RUNNER_GROUP_DELETED;
+    public const ACTION_RUNNER_CREATED           = AuditLog::ACTION_RUNNER_CREATED;
+    public const ACTION_RUNNER_DELETED           = AuditLog::ACTION_RUNNER_DELETED;
+    public const ACTION_RUNNER_TOKEN_REGENERATED = AuditLog::ACTION_RUNNER_TOKEN_REGENERATED;
+    public const ACTION_WEBHOOK_CREATED     = AuditLog::ACTION_WEBHOOK_CREATED;
+    public const ACTION_WEBHOOK_UPDATED     = AuditLog::ACTION_WEBHOOK_UPDATED;
+    public const ACTION_WEBHOOK_DELETED     = AuditLog::ACTION_WEBHOOK_DELETED;
+    public const ACTION_API_TOKEN_CREATED   = AuditLog::ACTION_API_TOKEN_CREATED;
+    public const ACTION_API_TOKEN_DELETED   = AuditLog::ACTION_API_TOKEN_DELETED;
+
+    /**
+     * @var AuditTargetInterface[] Dispatch targets. Populated in init() from
+     *                             Yii component configuration.
+     */
+    public array $targets = [];
 
     public function log(
         string  $action,
@@ -32,21 +82,29 @@ class AuditService extends Component
         ?int    $userId     = null,
         array   $context    = []
     ): void {
-        $request = \Yii::$app->has('request') ? \Yii::$app->request : null;
+        $request      = \Yii::$app->has('request') ? \Yii::$app->request : null;
         $isWebRequest = $request instanceof \yii\web\Request;
 
-        $entry = new AuditLog();
-        $entry->action      = $action;
-        $entry->object_type = $objectType;
-        $entry->object_id   = $objectId;
-        $entry->user_id     = $userId ?? $this->resolveUserId();
-        $entry->metadata    = !empty($context) ? json_encode($context, JSON_UNESCAPED_UNICODE) : null;
-        $entry->ip_address  = $isWebRequest ? $request->getUserIP() : null;
-        $entry->user_agent  = $isWebRequest ? $request->getUserAgent() : null;
-        $entry->created_at  = time();
+        $entry = [
+            'action'      => $action,
+            'object_type' => $objectType,
+            'object_id'   => $objectId,
+            'user_id'     => $userId ?? $this->resolveUserId(),
+            'metadata'    => !empty($context) ? json_encode($context, JSON_UNESCAPED_UNICODE) : null,
+            'ip_address'  => $isWebRequest ? $request->getUserIP() : null,
+            'user_agent'  => $isWebRequest ? $request->getUserAgent() : null,
+            'created_at'  => time(),
+        ];
 
-        if (!$entry->save()) {
-            \Yii::error('AuditService: failed to save log entry: ' . json_encode($entry->errors), __CLASS__);
+        foreach ($this->targets as $target) {
+            try {
+                $target->send($entry);
+            } catch (\Throwable $e) {
+                \Yii::error(
+                    'AuditService: target ' . get_class($target) . ' failed: ' . $e->getMessage(),
+                    __CLASS__
+                );
+            }
         }
     }
 

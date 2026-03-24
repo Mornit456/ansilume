@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\RunnerGroup;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -74,6 +75,7 @@ class RunnerGroupController extends BaseController
         $model->created_by = (int)\Yii::$app->user->id;
 
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_GROUP_CREATED, 'runner_group', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', "Runner group \"{$model->name}\" created.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
@@ -86,6 +88,7 @@ class RunnerGroupController extends BaseController
         $model = $this->findModel($id);
 
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_GROUP_UPDATED, 'runner_group', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', 'Runner group updated.');
             return $this->redirect(['view', 'id' => $model->id]);
         }
@@ -95,7 +98,10 @@ class RunnerGroupController extends BaseController
 
     public function actionDelete(int $id): Response
     {
-        $this->findModel($id)->delete();
+        $model = $this->findModel($id);
+        $name  = $model->name;
+        $model->delete();
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_RUNNER_GROUP_DELETED, 'runner_group', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', 'Runner group deleted.');
         return $this->redirect(['index']);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\models\AuditLog;
 use app\models\Inventory;
 use app\models\Project;
 use yii\data\ActiveDataProvider;
@@ -51,7 +52,7 @@ class InventoryController extends BaseController
         if ($model->load(\Yii::$app->request->post())) {
             $model->created_by = \Yii::$app->user->id;
             if ($model->save()) {
-                \Yii::$app->get('auditService')->log('inventory.created', 'inventory', $model->id, null, ['name' => $model->name]);
+                \Yii::$app->get('auditService')->log(AuditLog::ACTION_INVENTORY_CREATED, 'inventory', $model->id, null, ['name' => $model->name]);
                 \Yii::$app->session->setFlash('success', "Inventory \"{$model->name}\" created.");
                 return $this->redirect(['view', 'id' => $model->id]);
             }
@@ -66,7 +67,7 @@ class InventoryController extends BaseController
     {
         $model = $this->findModel($id);
         if ($model->load(\Yii::$app->request->post()) && $model->save()) {
-            \Yii::$app->get('auditService')->log('inventory.updated', 'inventory', $model->id, null, ['name' => $model->name]);
+            \Yii::$app->get('auditService')->log(AuditLog::ACTION_INVENTORY_UPDATED, 'inventory', $model->id, null, ['name' => $model->name]);
             \Yii::$app->session->setFlash('success', "Inventory \"{$model->name}\" updated.");
             return $this->redirect(['view', 'id' => $model->id]);
         }
@@ -81,7 +82,7 @@ class InventoryController extends BaseController
         $model = $this->findModel($id);
         $name  = $model->name;
         $model->delete();
-        \Yii::$app->get('auditService')->log('inventory.deleted', 'inventory', $id, null, ['name' => $name]);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_INVENTORY_DELETED, 'inventory', $id, null, ['name' => $name]);
         \Yii::$app->session->setFlash('success', "Inventory \"{$name}\" deleted.");
         return $this->redirect(['index']);
     }

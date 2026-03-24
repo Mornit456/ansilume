@@ -147,6 +147,14 @@ ansilume_smtp_password: ""
 ansilume_admin_email: "admin@example.com"
 ansilume_sender_email: "noreply@ansilume.local"
 
+# -- Audit / SIEM ------------------------------------------------------------
+
+# Forward audit log events to syslog (works with Promtail/Loki, Splunk syslog
+# input, rsyslog forwarding). Database logging is always active.
+ansilume_audit_syslog_enabled: false
+ansilume_audit_syslog_ident: ansilume
+ansilume_audit_syslog_facility: LOG_LOCAL0
+
 # -- Docker Compose ----------------------------------------------------------
 
 # Docker Compose project name.

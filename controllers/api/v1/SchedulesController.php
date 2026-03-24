@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers\api\v1;
 
+use app\models\AuditLog;
 use app\models\Schedule;
 use yii\data\ActiveDataProvider;
 use yii\web\NotFoundHttpException;
@@ -46,6 +47,7 @@ class SchedulesController extends BaseApiController
             $schedule->computeNextRunAt();
         }
         $schedule->save(false, ['enabled', 'next_run_at', 'updated_at']);
+        \Yii::$app->get('auditService')->log(AuditLog::ACTION_SCHEDULE_TOGGLED, 'schedule', $schedule->id, null, ['name' => $schedule->name, 'enabled' => $schedule->enabled]);
         return $this->success($this->serialize($schedule));
     }
 
