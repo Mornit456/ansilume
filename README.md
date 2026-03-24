@@ -44,6 +44,7 @@ Think of it as a lightweight, self-hosted alternative to AWX or Semaphore — de
 - **Live job output** — streaming stdout/stderr with per-task play recap
 - **Git-backed projects** — sync playbooks from remote repositories
 - **Lint integration** — automatic ansible-lint on project sync
+- **Monitoring endpoints** — [Prometheus and JSON metrics](docs/monitoring.md) for jobs, tasks, hosts, workers, and infrastructure health
 
 ---
 

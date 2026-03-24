@@ -167,8 +167,9 @@ $config = [
                 'site/chart-data' => 'site/chart-data',
                 // Credential helpers
                 'credential/generate-ssh-key' => 'credential/generate-ssh-key',
-                // Health check
-                'health' => 'health/index',
+                // Health check and metrics
+                'health'  => 'health/index',
+                'metrics' => 'metrics/index',
                 // Inbound trigger
                 ['pattern' => 'trigger/<token:[a-f0-9]{64}>', 'route' => 'trigger/fire', 'verb' => 'POST'],
                 // Teams
