@@ -94,6 +94,9 @@ return [
         'jobClaimService' => [
             'class' => 'app\services\JobClaimService',
         ],
+        'totpService' => [
+            'class' => 'app\services\TotpService',
+        ],
         'inventoryService' => [
             'class'   => 'app\services\InventoryService',
             'timeout' => 30,

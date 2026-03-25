@@ -100,6 +100,10 @@ class AuditLog extends ActiveRecord
     public const ACTION_PASSWORD_RESET_REQUESTED = 'password-reset.requested';
     public const ACTION_PASSWORD_RESET_COMPLETED = 'password-reset.completed';
 
+    // -- MFA actions -----------------------------------------------------------
+    public const ACTION_MFA_ENABLED  = 'mfa.enabled';
+    public const ACTION_MFA_DISABLED = 'mfa.disabled';
+
     public static function tableName(): string
     {
         return '{{%audit_log}}';

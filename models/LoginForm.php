@@ -42,6 +42,23 @@ class LoginForm extends Model
         }
     }
 
+    /**
+     * Check if credentials are valid without actually logging in.
+     */
+    public function validateCredentials(): bool
+    {
+        return $this->validate();
+    }
+
+    /**
+     * Whether the validated user has TOTP 2FA enabled.
+     */
+    public function requiresTotp(): bool
+    {
+        $user = $this->getUser();
+        return $user !== null && $user->totp_enabled;
+    }
+
     public function login(): bool
     {
         if ($this->validate()) {
@@ -49,6 +66,11 @@ class LoginForm extends Model
             return \Yii::$app->user->login($this->getUser(), $duration);
         }
         return false;
+    }
+
+    public function getUserModel(): ?User
+    {
+        return $this->getUser();
     }
 
     protected function getUser(): ?User

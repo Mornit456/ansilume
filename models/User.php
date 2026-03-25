@@ -14,6 +14,9 @@ use yii\web\IdentityInterface;
  * @property string $password_hash
  * @property string $auth_key
  * @property string|null $password_reset_token
+ * @property string|null $totp_secret       Encrypted TOTP shared secret
+ * @property bool        $totp_enabled      Whether TOTP 2FA is active
+ * @property string|null $recovery_codes    JSON array of bcrypt-hashed recovery codes
  * @property int    $status
  * @property bool   $is_superadmin
  * @property int    $created_at

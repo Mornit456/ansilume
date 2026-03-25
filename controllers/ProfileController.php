@@ -6,26 +6,39 @@ namespace app\controllers;
 
 use app\models\ApiToken;
 use app\models\AuditLog;
-use yii\filters\AccessControl;
+use app\models\TotpDisableForm;
+use app\models\TotpSetupForm;
+use app\models\User;
+use app\services\TotpService;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * Lets the logged-in user manage their own API tokens.
+ * Lets the logged-in user manage their API tokens and security settings (TOTP 2FA).
  */
 class ProfileController extends BaseController
 {
     protected function accessRules(): array
     {
         return [
-            ['actions' => ['tokens', 'create-token', 'delete-token'], 'allow' => true, 'roles' => ['@']],
+            ['actions' => [
+                'tokens', 'create-token', 'delete-token',
+                'security', 'setup-totp', 'enable-totp', 'disable-totp',
+            ], 'allow' => true, 'roles' => ['@']],
         ];
     }
 
     protected function verbRules(): array
     {
-        return ['create-token' => ['POST'], 'delete-token' => ['POST']];
+        return [
+            'create-token' => ['POST'],
+            'delete-token' => ['POST'],
+            'enable-totp'  => ['POST'],
+            'disable-totp' => ['POST'],
+        ];
     }
+
+    // ── API Tokens ───────────────────────────────────────────────────────────
 
     public function actionTokens(): string
     {
@@ -50,7 +63,6 @@ class ProfileController extends BaseController
         ['raw' => $raw, 'token' => $tokenModel] = ApiToken::generate((int)\Yii::$app->user->id, $name);
         \Yii::$app->get('auditService')->log(AuditLog::ACTION_API_TOKEN_CREATED, 'api_token', $tokenModel->id, null, ['name' => $name]);
 
-        // Store raw token in session flash — displayed once, never again
         \Yii::$app->session->setFlash('new_token', $raw);
         \Yii::$app->session->setFlash('success', 'Token created. Copy it now — it will not be shown again.');
         return $this->redirect(['tokens']);
@@ -67,5 +79,131 @@ class ProfileController extends BaseController
         \Yii::$app->get('auditService')->log(AuditLog::ACTION_API_TOKEN_DELETED, 'api_token', $id, null, ['name' => $tokenName]);
         \Yii::$app->session->setFlash('success', "Token \"{$tokenName}\" revoked.");
         return $this->redirect(['tokens']);
+    }
+
+    // ── Security / TOTP 2FA ──────────────────────────────────────────────────
+
+    public function actionSecurity(): string
+    {
+        /** @var User $user */
+        $user = \Yii::$app->user->identity;
+
+        /** @var TotpService $totp */
+        $totp = \Yii::$app->get('totpService');
+
+        $remainingCodes = $totp->remainingRecoveryCodeCount($user);
+
+        return $this->render('security', [
+            'user'           => $user,
+            'totpEnabled'    => (bool)$user->totp_enabled,
+            'remainingCodes' => $remainingCodes,
+        ]);
+    }
+
+    /**
+     * Step 1: Generate a TOTP secret and show QR code + confirmation form.
+     */
+    public function actionSetupTotp(): Response|string
+    {
+        /** @var User $user */
+        $user = \Yii::$app->user->identity;
+
+        if ($user->totp_enabled) {
+            \Yii::$app->session->setFlash('info', 'Two-factor authentication is already enabled.');
+            return $this->redirect(['security']);
+        }
+
+        /** @var TotpService $totp */
+        $totp = \Yii::$app->get('totpService');
+
+        // Store secret in session so it persists across the setup flow
+        $secret = \Yii::$app->session->get('totp_setup_secret');
+        if (empty($secret)) {
+            $secret = $totp->generateSecret();
+            \Yii::$app->session->set('totp_setup_secret', $secret);
+        }
+
+        $provisioningUri = $totp->buildProvisioningUri($secret, $user);
+        $qrDataUri       = $totp->generateQrDataUri($provisioningUri);
+
+        $model = new TotpSetupForm($user, $secret);
+
+        return $this->render('setup-totp', [
+            'model'     => $model,
+            'secret'    => $secret,
+            'qrDataUri' => $qrDataUri,
+        ]);
+    }
+
+    /**
+     * Step 2: Verify the TOTP code and activate 2FA.
+     */
+    public function actionEnableTotp(): Response|string
+    {
+        /** @var User $user */
+        $user = \Yii::$app->user->identity;
+
+        $secret = \Yii::$app->session->get('totp_setup_secret');
+        if (empty($secret)) {
+            \Yii::$app->session->setFlash('danger', 'TOTP setup session expired. Please start again.');
+            return $this->redirect(['setup-totp']);
+        }
+
+        $model = new TotpSetupForm($user, $secret);
+        if ($model->load(\Yii::$app->request->post()) && $model->validate()) {
+            $recoveryCodes = $model->enable();
+
+            // Clear the setup session
+            \Yii::$app->session->remove('totp_setup_secret');
+
+            \Yii::$app->get('auditService')->log(
+                AuditLog::ACTION_MFA_ENABLED, 'user', $user->id
+            );
+
+            // Show recovery codes once
+            return $this->render('recovery-codes', [
+                'recoveryCodes' => $recoveryCodes,
+            ]);
+        }
+
+        // Re-render setup form with errors
+        /** @var TotpService $totp */
+        $totp            = \Yii::$app->get('totpService');
+        $provisioningUri = $totp->buildProvisioningUri($secret, $user);
+        $qrDataUri       = $totp->generateQrDataUri($provisioningUri);
+
+        return $this->render('setup-totp', [
+            'model'     => $model,
+            'secret'    => $secret,
+            'qrDataUri' => $qrDataUri,
+        ]);
+    }
+
+    /**
+     * Disable 2FA — requires a current TOTP code or recovery code.
+     */
+    public function actionDisableTotp(): Response|string
+    {
+        /** @var User $user */
+        $user = \Yii::$app->user->identity;
+
+        if (!$user->totp_enabled) {
+            \Yii::$app->session->setFlash('info', 'Two-factor authentication is not enabled.');
+            return $this->redirect(['security']);
+        }
+
+        $model = new TotpDisableForm($user);
+        if ($model->load(\Yii::$app->request->post()) && $model->validate()) {
+            $model->disable();
+
+            \Yii::$app->get('auditService')->log(
+                AuditLog::ACTION_MFA_DISABLED, 'user', $user->id
+            );
+
+            \Yii::$app->session->setFlash('success', 'Two-factor authentication has been disabled.');
+            return $this->redirect(['security']);
+        }
+
+        return $this->render('disable-totp', ['model' => $model]);
     }
 }

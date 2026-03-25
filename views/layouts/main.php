@@ -165,6 +165,7 @@ $active = fn(string $prefix): string =>
             <?php endif; ?>
         </div>
         <nav class="nav flex-column">
+            <a class="nav-link" href="<?= Url::to(['/profile/security']) ?>">Security</a>
             <a class="nav-link" href="<?= Url::to(['/profile/tokens']) ?>">API Tokens</a>
             <form method="post" action="<?= Url::to(['/site/logout']) ?>" style="display:contents">
                 <input type="hidden" name="<?= \Yii::$app->request->csrfParam ?>" value="<?= \Yii::$app->request->getCsrfToken() ?>">

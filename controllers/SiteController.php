@@ -14,6 +14,8 @@ use app\models\PasswordResetRequestForm;
 use app\models\Project;
 use app\models\Runner;
 use app\models\RunnerGroup;
+use app\models\TotpVerifyForm;
+use app\models\User;
 use yii\web\BadRequestHttpException;
 use yii\web\Response;
 
@@ -22,7 +24,7 @@ class SiteController extends BaseController
     protected function accessRules(): array
     {
         return [
-            ['actions' => ['login', 'error', 'forgot-password', 'reset-password'], 'allow' => true],
+            ['actions' => ['login', 'error', 'forgot-password', 'reset-password', 'verify-totp'], 'allow' => true],
             ['actions' => ['index', 'logout', 'chart-data'], 'allow' => true, 'roles' => ['@']],
         ];
     }
@@ -150,11 +152,23 @@ class SiteController extends BaseController
             return $this->goHome();
         }
         $model = new LoginForm();
-        if ($model->load(\Yii::$app->request->post()) && $model->login()) {
-            \Yii::$app->get('auditService')->log(
-                AuditLog::ACTION_USER_LOGIN, null, null, null, ['username' => $model->username]
-            );
-            return $this->goBack();
+        if ($model->load(\Yii::$app->request->post()) && $model->validateCredentials()) {
+            // Credentials valid — check if TOTP is required
+            if ($model->requiresTotp()) {
+                // Store pending login in session, redirect to TOTP step
+                $user = $model->getUserModel();
+                \Yii::$app->session->set('totp_pending_user_id', $user->id);
+                \Yii::$app->session->set('totp_pending_remember', $model->rememberMe);
+                return $this->redirect(['verify-totp']);
+            }
+
+            // No TOTP — log in directly
+            if ($model->login()) {
+                \Yii::$app->get('auditService')->log(
+                    AuditLog::ACTION_USER_LOGIN, null, null, null, ['username' => $model->username]
+                );
+                return $this->goBack();
+            }
         }
         if ($model->hasErrors()) {
             \Yii::$app->get('auditService')->log(
@@ -163,6 +177,59 @@ class SiteController extends BaseController
         }
         $model->password = '';
         return $this->render('login', ['model' => $model]);
+    }
+
+    public function actionVerifyTotp(): Response|string
+    {
+        if (!\Yii::$app->user->isGuest) {
+            return $this->goHome();
+        }
+
+        $userId = \Yii::$app->session->get('totp_pending_user_id');
+        if (empty($userId)) {
+            return $this->redirect(['login']);
+        }
+
+        $user = User::findIdentity($userId);
+        if ($user === null || !$user->totp_enabled) {
+            \Yii::$app->session->remove('totp_pending_user_id');
+            \Yii::$app->session->remove('totp_pending_remember');
+            return $this->redirect(['login']);
+        }
+
+        $model = new TotpVerifyForm($user);
+        if ($model->load(\Yii::$app->request->post()) && $model->validate()) {
+            $remember = (bool)\Yii::$app->session->get('totp_pending_remember', false);
+            $duration = $remember ? 3600 * 24 * 30 : 0;
+
+            // Clear pending state before login
+            \Yii::$app->session->remove('totp_pending_user_id');
+            \Yii::$app->session->remove('totp_pending_remember');
+
+            \Yii::$app->user->login($user, $duration);
+
+            // Regenerate session ID to prevent fixation
+            \Yii::$app->session->regenerateID(true);
+
+            \Yii::$app->get('auditService')->log(
+                AuditLog::ACTION_USER_LOGIN, null, null, null, [
+                    'username' => $user->username,
+                    'mfa'      => true,
+                    'recovery_code' => $model->usedRecoveryCode(),
+                ]
+            );
+
+            if ($model->usedRecoveryCode()) {
+                /** @var \app\services\TotpService $totp */
+                $totp = \Yii::$app->get('totpService');
+                $remaining = $totp->remainingRecoveryCodeCount($user);
+                \Yii::$app->session->setFlash('warning', "You used a recovery code to log in. You have {$remaining} recovery codes remaining.");
+            }
+
+            return $this->goBack();
+        }
+
+        return $this->render('verify-totp', ['model' => $model]);
     }
 
     public function actionForgotPassword(): Response|string

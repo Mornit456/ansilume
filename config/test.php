@@ -57,6 +57,9 @@ return [
         'projectService' => [
             'class' => 'app\services\ProjectService',
         ],
+        'totpService' => [
+            'class' => 'app\services\TotpService',
+        ],
         'inventoryService' => [
             'class' => 'app\services\InventoryService',
         ],

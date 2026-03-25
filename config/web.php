@@ -139,6 +139,9 @@ $config = [
         'jobClaimService' => [
             'class' => 'app\services\JobClaimService',
         ],
+        'totpService' => [
+            'class' => 'app\services\TotpService',
+        ],
         'inventoryService' => [
             'class'   => 'app\services\InventoryService',
             'timeout' => 30,
@@ -158,6 +161,7 @@ $config = [
                 'logout'                  => 'site/logout',
                 'forgot-password'         => 'site/forgot-password',
                 'reset-password'          => 'site/reset-password',
+                'verify-totp'             => 'site/verify-totp',
                 // API v1
                 ['pattern' => 'api/v1/jobs/<id:\d+>/cancel', 'route' => 'api/v1/jobs/cancel', 'verb' => 'POST'],
                 ['pattern' => 'api/v1/jobs/<id:\d+>',        'route' => 'api/v1/jobs/view'],
