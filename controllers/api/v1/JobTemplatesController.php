@@ -63,6 +63,7 @@ class JobTemplatesController extends BaseApiController
             'skip_tags'        => $t->skip_tags,
             'has_survey'       => $t->hasSurvey(),
             'notify_on_failure'=> (bool)$t->notify_on_failure,
+            'notify_on_success'=> (bool)$t->notify_on_success,
             'created_at'       => $t->created_at,
             'updated_at'       => $t->updated_at,
         ];

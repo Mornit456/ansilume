@@ -9,9 +9,12 @@ use app\models\Job;
 use app\models\JobHostSummary;
 use app\models\JobTemplate;
 use app\models\LoginForm;
+use app\models\PasswordResetForm;
+use app\models\PasswordResetRequestForm;
 use app\models\Project;
 use app\models\Runner;
 use app\models\RunnerGroup;
+use yii\web\BadRequestHttpException;
 use yii\web\Response;
 
 class SiteController extends BaseController
@@ -19,7 +22,7 @@ class SiteController extends BaseController
     protected function accessRules(): array
     {
         return [
-            ['actions' => ['login', 'error'],          'allow' => true],
+            ['actions' => ['login', 'error', 'forgot-password', 'reset-password'], 'allow' => true],
             ['actions' => ['index', 'logout', 'chart-data'], 'allow' => true, 'roles' => ['@']],
         ];
     }
@@ -160,6 +163,53 @@ class SiteController extends BaseController
         }
         $model->password = '';
         return $this->render('login', ['model' => $model]);
+    }
+
+    public function actionForgotPassword(): Response|string
+    {
+        if (!\Yii::$app->user->isGuest) {
+            return $this->goHome();
+        }
+
+        $model = new PasswordResetRequestForm();
+        if ($model->load(\Yii::$app->request->post()) && $model->validate()) {
+            $model->sendResetEmail();
+            \Yii::$app->get('auditService')->log(
+                AuditLog::ACTION_PASSWORD_RESET_REQUESTED, null, null, null, ['email' => $model->email]
+            );
+            \Yii::$app->session->setFlash('success', 'If an account with that email exists, a password reset link has been sent.');
+            return $this->redirect(['login']);
+        }
+
+        return $this->render('forgot-password', ['model' => $model]);
+    }
+
+    public function actionResetPassword(string $token = ''): Response|string
+    {
+        if (!\Yii::$app->user->isGuest) {
+            return $this->goHome();
+        }
+
+        if (empty($token)) {
+            throw new BadRequestHttpException('Missing password reset token.');
+        }
+
+        try {
+            $model = new PasswordResetForm($token);
+        } catch (\yii\base\InvalidArgumentException) {
+            \Yii::$app->session->setFlash('danger', 'Invalid or expired password reset link. Please request a new one.');
+            return $this->redirect(['forgot-password']);
+        }
+
+        if ($model->load(\Yii::$app->request->post()) && $model->validate() && $model->resetPassword()) {
+            \Yii::$app->get('auditService')->log(
+                AuditLog::ACTION_PASSWORD_RESET_COMPLETED, 'user', $model->getUser()->id
+            );
+            \Yii::$app->session->setFlash('success', 'Your password has been reset. You can now log in.');
+            return $this->redirect(['login']);
+        }
+
+        return $this->render('reset-password', ['model' => $model]);
     }
 
     public function actionLogout(): Response

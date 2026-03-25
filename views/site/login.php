@@ -35,6 +35,10 @@ $this->title = 'Login';
                         <?= Html::submitButton('Sign in', ['class' => 'btn btn-primary', 'name' => 'login-button']) ?>
                     </div>
 
+                    <div class="text-center mt-3">
+                        <?= Html::a('Forgot password?', ['site/forgot-password'], ['class' => 'text-muted small']) ?>
+                    </div>
+
                 <?php ActiveForm::end(); ?>
             </div>
         </div>

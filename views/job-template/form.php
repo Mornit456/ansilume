@@ -121,7 +121,10 @@ $this->title = $model->isNewRecord ? 'New Job Template' : 'Edit: ' . $model->nam
         <div class="col-md-3">
             <?= $form->field($model, 'notify_on_failure')->checkbox()->hint('Send email when the job fails') ?>
         </div>
-        <div class="col-md-9">
+        <div class="col-md-3">
+            <?= $form->field($model, 'notify_on_success')->checkbox()->hint('Send email when the job succeeds') ?>
+        </div>
+        <div class="col-md-6">
             <?= $form->field($model, 'notify_emails')->textInput([
                 'placeholder' => '["ops@example.com","alert@example.com"]',
                 'class'       => 'form-control font-monospace',

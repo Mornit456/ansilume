@@ -58,6 +58,9 @@ $config = [
         ],
         'mailer' => [
             'class'            => 'yii\swiftmailer\SwiftMailer',
+            'viewPath'         => '@app/mail',
+            'htmlLayout'       => '@app/mail/layouts/html',
+            'textLayout'       => '@app/mail/layouts/text',
             'useFileTransport' => empty($_ENV['SMTP_HOST']),
             'transport'        => empty($_ENV['SMTP_HOST']) ? [] : array_filter([
                 'class'      => 'Swift_SmtpTransport',
@@ -153,6 +156,8 @@ $config = [
                 ''                        => 'site/index',
                 'login'                   => 'site/login',
                 'logout'                  => 'site/logout',
+                'forgot-password'         => 'site/forgot-password',
+                'reset-password'          => 'site/reset-password',
                 // API v1
                 ['pattern' => 'api/v1/jobs/<id:\d+>/cancel', 'route' => 'api/v1/jobs/cancel', 'verb' => 'POST'],
                 ['pattern' => 'api/v1/jobs/<id:\d+>',        'route' => 'api/v1/jobs/view'],

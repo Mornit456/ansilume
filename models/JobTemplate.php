@@ -28,6 +28,7 @@ use yii\db\ActiveRecord;
  * @property int|null    $runner_group_id
  * @property string|null $survey_fields     JSON array of SurveyField definitions
  * @property bool        $notify_on_failure
+ * @property bool        $notify_on_success
  * @property string|null $notify_emails     JSON array of email addresses
  * @property string|null $trigger_token     Hashed trigger token (bcrypt)
  * @property string|null $lint_output       Last ansible-lint output
@@ -76,7 +77,7 @@ class JobTemplate extends ActiveRecord
             [['survey_fields', 'notify_emails'], 'string'],
             [['survey_fields'], 'validateJson'],
             [['notify_emails'], 'validateJson'],
-            [['notify_on_failure'], 'boolean'],
+            [['notify_on_failure', 'notify_on_success'], 'boolean'],
             [['trigger_token'], 'string', 'max' => 64],
             [['project_id', 'inventory_id', 'credential_id', 'runner_group_id', 'created_by'], 'integer'],
         ];

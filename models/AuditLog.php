@@ -96,6 +96,10 @@ class AuditLog extends ActiveRecord
     public const ACTION_API_TOKEN_CREATED = 'api-token.created';
     public const ACTION_API_TOKEN_DELETED = 'api-token.deleted';
 
+    // -- Password reset actions ------------------------------------------------
+    public const ACTION_PASSWORD_RESET_REQUESTED = 'password-reset.requested';
+    public const ACTION_PASSWORD_RESET_COMPLETED = 'password-reset.completed';
+
     public static function tableName(): string
     {
         return '{{%audit_log}}';

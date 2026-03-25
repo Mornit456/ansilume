@@ -37,6 +37,9 @@ return [
         ],
         'mailer' => [
             'class'            => 'yii\swiftmailer\SwiftMailer',
+            'viewPath'         => '@app/mail',
+            'htmlLayout'       => '@app/mail/layouts/html',
+            'textLayout'       => '@app/mail/layouts/text',
             'useFileTransport' => empty($_ENV['SMTP_HOST']),
             'transport'        => empty($_ENV['SMTP_HOST']) ? [] : array_filter([
                 'class'      => 'Swift_SmtpTransport',

@@ -99,10 +99,12 @@ class RunAnsibleJob extends BaseObject implements JobInterface
             : Webhook::EVENT_JOB_FAILURE;
         $ws->dispatch($event, $job);
 
+        /** @var NotificationService $ns */
+        $ns = \Yii::$app->get('notificationService');
         if ($job->status === Job::STATUS_FAILED) {
-            /** @var NotificationService $ns */
-            $ns = \Yii::$app->get('notificationService');
             $ns->notifyJobFailed($job);
+        } elseif ($job->status === Job::STATUS_SUCCEEDED) {
+            $ns->notifyJobSucceeded($job);
         }
     }
 

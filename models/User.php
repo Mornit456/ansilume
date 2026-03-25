@@ -113,6 +113,60 @@ class User extends ActiveRecord implements IdentityInterface
         return $this->status === self::STATUS_ACTIVE;
     }
 
+    // --- Password reset token ---
+
+    /** Token validity in seconds (60 minutes). */
+    public const PASSWORD_RESET_TOKEN_EXPIRE = 3600;
+
+    /**
+     * Generate a time-stamped password reset token and persist it.
+     */
+    public function generatePasswordResetToken(): void
+    {
+        $this->password_reset_token = \Yii::$app->security->generateRandomString() . '_' . time();
+    }
+
+    /**
+     * Remove the password reset token.
+     */
+    public function removePasswordResetToken(): void
+    {
+        $this->password_reset_token = null;
+    }
+
+    /**
+     * Find a user by a valid (non-expired) password reset token.
+     */
+    public static function findByPasswordResetToken(string $token): ?static
+    {
+        if (empty($token)) {
+            return null;
+        }
+
+        $timestamp = (int)substr($token, strrpos($token, '_') + 1);
+        $expire    = self::PASSWORD_RESET_TOKEN_EXPIRE;
+        if ($timestamp + $expire < time()) {
+            return null;
+        }
+
+        return static::findOne([
+            'password_reset_token' => $token,
+            'status'               => self::STATUS_ACTIVE,
+        ]);
+    }
+
+    /**
+     * Check whether the current reset token is still valid.
+     */
+    public function isPasswordResetTokenValid(): bool
+    {
+        if (empty($this->password_reset_token)) {
+            return false;
+        }
+        $timestamp = (int)substr($this->password_reset_token, strrpos($this->password_reset_token, '_') + 1);
+        return $timestamp + self::PASSWORD_RESET_TOKEN_EXPIRE >= time();
+    }
+
     // --- Timestamps ---
 
     public function behaviors(): array

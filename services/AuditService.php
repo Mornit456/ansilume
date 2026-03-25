@@ -68,6 +68,8 @@ class AuditService extends Component
     public const ACTION_WEBHOOK_DELETED     = AuditLog::ACTION_WEBHOOK_DELETED;
     public const ACTION_API_TOKEN_CREATED   = AuditLog::ACTION_API_TOKEN_CREATED;
     public const ACTION_API_TOKEN_DELETED   = AuditLog::ACTION_API_TOKEN_DELETED;
+    public const ACTION_PASSWORD_RESET_REQUESTED = AuditLog::ACTION_PASSWORD_RESET_REQUESTED;
+    public const ACTION_PASSWORD_RESET_COMPLETED = AuditLog::ACTION_PASSWORD_RESET_COMPLETED;
 
     /**
      * @var AuditTargetInterface[] Dispatch targets. Populated in init() from
