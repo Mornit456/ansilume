@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env from example
+        run: |
+          cp .env.example .env
+          sed -i \
+            -e "s|^COOKIE_VALIDATION_KEY=.*|COOKIE_VALIDATION_KEY=$(openssl rand -hex 32)|" \
+            -e "s|^APP_SECRET_KEY=.*|APP_SECRET_KEY=$(openssl rand -hex 32)|" \
+            -e "s|^RUNNER_BOOTSTRAP_SECRET=.*|RUNNER_BOOTSTRAP_SECRET=$(openssl rand -hex 24)|" \
+            .env
+
+      - name: Start services
+        run: docker compose up -d --build
+        env:
+          UID: "1000"
+          GID: "1000"
+
+      - name: Wait for app to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(docker compose ps app --format json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "App is healthy"
+              break
+            fi
+            echo "Waiting for app... ($i/30)"
+            sleep 5
+          done
+          docker compose ps
+
+      - name: Run test suite
+        run: docker compose exec -T app bash -c './tests.sh'
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          docker compose logs app
+          docker compose logs db
+          docker compose logs queue-worker
