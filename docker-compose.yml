@@ -194,6 +194,8 @@ services:
       - API_URL=http://nginx
     depends_on:
       nginx:
+        condition: service_started
+      app:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "sh", "-c", "test -f /var/www/runtime/runner-runner-1.token"]
@@ -224,6 +226,8 @@ services:
       - API_URL=http://nginx
     depends_on:
       nginx:
+        condition: service_started
+      app:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "sh", "-c", "test -f /var/www/runtime/runner-runner-2.token"]
