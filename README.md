@@ -241,6 +241,18 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for common issues — con
 
 ---
 
+## Releasing
+
+```bash
+./bin/release patch   # 0.1.0 → 0.1.1
+./bin/release minor   # 0.1.0 → 0.2.0
+./bin/release major   # 0.1.0 → 1.0.0
+```
+
+See [docs/releasing.md](docs/releasing.md) for the full release process.
+
+---
+
 ## License
 
 [Apache 2.0](LICENSE)
