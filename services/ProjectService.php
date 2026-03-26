@@ -100,8 +100,13 @@ class ProjectService extends Component
     protected function buildGitEnv(Project $project, ?string &$keyFile): array
     {
         $env = [
-            'HOME'               => getenv('HOME') ?: '/root',
-            'GIT_TERMINAL_PROMPT' => '0',  // never block on interactive prompts
+            'HOME'                => getenv('HOME') ?: '/root',
+            'GIT_TERMINAL_PROMPT' => '0',   // never block on interactive prompts
+            // Suppress "dubious ownership" errors that occur in Docker when the
+            // directory was created by a different UID than the git process runs as.
+            'GIT_CONFIG_COUNT'    => '1',
+            'GIT_CONFIG_KEY_0'    => 'safe.directory',
+            'GIT_CONFIG_VALUE_0'  => '*',
         ];
 
         if ($project->scm_credential_id === null) {
