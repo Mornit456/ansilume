@@ -62,7 +62,7 @@ class ProjectController extends BaseController
         $localPath = $this->resolveEffectivePath($model);
         if ($localPath !== null) {
             $playbooks = $this->detectPlaybooks($localPath);
-            $tree      = $this->buildTree($localPath, $localPath, 0, 3);
+            $tree      = $this->buildTree($localPath, $localPath, 0, 5);
         }
         return $this->render('view', ['model' => $model, 'playbooks' => $playbooks, 'tree' => $tree]);
     }
