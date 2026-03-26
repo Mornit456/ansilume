@@ -81,6 +81,7 @@ class SetupController extends Controller
         $seedMigrations = [
             'm000020_000000_seed_selftest_template',
             'm000035_000000_seed_demo_project',
+            'm000036_000000_assign_default_runner_group_to_seeded_templates',
         ];
 
         $db = \Yii::$app->db;

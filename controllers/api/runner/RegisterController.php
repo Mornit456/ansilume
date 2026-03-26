@@ -113,7 +113,34 @@ class RegisterController extends Controller
         if (!$group->save()) {
             throw new \RuntimeException('Failed to create default runner group: ' . json_encode($group->errors));
         }
+
+        // Backfill seeded templates that were created before the first runner
+        // registered (seeds ran when no runner group existed yet).
+        $this->assignGroupToUnassignedSeededTemplates($group->id);
+
         return $group;
+    }
+
+    /**
+     * Assign the given runner group to seeded templates that have no group set.
+     * Restricted to known seeded name prefixes to avoid silently touching
+     * user-created templates.
+     */
+    private function assignGroupToUnassignedSeededTemplates(int $groupId): void
+    {
+        $prefixes = ['Selftest', 'Demo —'];
+        $db       = \Yii::$app->db;
+
+        $conditions = array_map(
+            fn($p) => 'name LIKE ' . $db->quoteValue($p . '%'),
+            $prefixes
+        );
+        $where = '(' . implode(' OR ', $conditions) . ')';
+
+        $db->createCommand(
+            "UPDATE {{%job_template}} SET runner_group_id = :gid WHERE runner_group_id IS NULL AND {$where}",
+            [':gid' => $groupId]
+        )->execute();
     }
 
     /**
