@@ -235,7 +235,10 @@ class RunnerController extends Controller
             2 => ['pipe', 'w'],
         ];
 
-        $process = proc_open($cmd, $descriptorspec, $pipes, null, $env);
+        // Run from the project root so Ansible finds ansible.cfg there,
+        // which resolves roles_path, collections_path, etc. correctly.
+        $projectCwd = $payload['project_path'] ?? null;
+        $process    = proc_open($cmd, $descriptorspec, $pipes, ($projectCwd && is_dir($projectCwd)) ? $projectCwd : null, $env);
 
         if (!is_resource($process)) {
             $this->apiPost("/api/runner/v1/jobs/{$jobId}/logs", [

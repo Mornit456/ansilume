@@ -91,6 +91,7 @@ class JobClaimService extends Component
 
         return [
             'job_id'           => $job->id,
+            'project_path'     => $projectPath,
             'playbook_path'    => $playbookPath,
             'inventory_type'   => $inventory['type'],
             'inventory_content'=> $inventory['content'],   // for static
