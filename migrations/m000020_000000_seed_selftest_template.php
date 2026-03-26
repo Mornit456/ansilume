@@ -40,7 +40,8 @@ class m000020_000000_seed_selftest_template extends Migration
             return;
         }
 
-        $now = time();
+        $now            = time();
+        $runnerGroupId  = $this->defaultRunnerGroupId();
 
         // ------------------------------------------------------------------
         // Project — manual type, local path points to the bundled selftest/
@@ -81,27 +82,36 @@ class m000020_000000_seed_selftest_template extends Migration
         // Job Template
         // ------------------------------------------------------------------
         $this->insert('{{%job_template}}', [
-            'name'          => self::TEMPLATE_NAME,
-            'description'   => 'Runs selftest/selftest.yaml against localhost to verify the Ansible runner is working correctly.',
-            'project_id'    => $projectId,
-            'inventory_id'  => $inventoryId,
-            'credential_id' => null,
-            'playbook'      => 'selftest.yaml',
-            'extra_vars'    => null,
-            'verbosity'     => 1,
-            'forks'         => 1,
-            'become'        => 0,
-            'become_method' => 'sudo',
-            'become_user'   => 'root',
-            'limit'         => null,
-            'tags'          => null,
-            'skip_tags'     => null,
-            'created_by'    => $ownerId,
-            'created_at'    => $now,
-            'updated_at'    => $now,
+            'name'            => self::TEMPLATE_NAME,
+            'description'     => 'Runs selftest/selftest.yaml against localhost to verify the Ansible runner is working correctly.',
+            'project_id'      => $projectId,
+            'inventory_id'    => $inventoryId,
+            'credential_id'   => null,
+            'runner_group_id' => $runnerGroupId,
+            'playbook'        => 'selftest.yaml',
+            'extra_vars'      => null,
+            'verbosity'       => 1,
+            'forks'           => 1,
+            'become'          => 0,
+            'become_method'   => 'sudo',
+            'become_user'     => 'root',
+            'limit'           => null,
+            'tags'            => null,
+            'skip_tags'       => null,
+            'created_by'      => $ownerId,
+            'created_at'      => $now,
+            'updated_at'      => $now,
         ]);
 
         echo "    > Selftest project, inventory, and job template created.\n";
+    }
+
+    private function defaultRunnerGroupId(): ?int
+    {
+        $id = $this->db->createCommand(
+            "SELECT id FROM {{%runner_group}} WHERE name = 'default' LIMIT 1"
+        )->queryScalar();
+        return $id !== false ? (int)$id : null;
     }
 
     public function safeDown(): void

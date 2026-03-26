@@ -87,10 +87,11 @@ class m000035_000000_seed_demo_project extends Migration
                 'updated_at'     => $now,
             ]);
         }
-        $inventoryId = (int) $this->db->createCommand(
+        $inventoryId   = (int) $this->db->createCommand(
             'SELECT id FROM {{%inventory}} WHERE name = :name ORDER BY id ASC LIMIT 1',
             [':name' => self::INVENTORY_NAME]
         )->queryScalar();
+        $runnerGroupId = $this->defaultRunnerGroupId();
 
         // ------------------------------------------------------------------
         // Job templates — one per playbook.
@@ -146,24 +147,25 @@ class m000035_000000_seed_demo_project extends Migration
 
         foreach ($templates as $tpl) {
             $this->insert('{{%job_template}}', [
-                'name'          => $tpl['name'],
-                'description'   => $tpl['description'],
-                'project_id'    => $projectId,
-                'inventory_id'  => $inventoryId,
-                'credential_id' => null,
-                'playbook'      => $tpl['playbook'],
-                'extra_vars'    => null,
-                'verbosity'     => $tpl['verbosity'],
-                'forks'         => 5,
-                'become'        => $tpl['become'],
-                'become_method' => 'sudo',
-                'become_user'   => 'root',
-                'limit'         => null,
-                'tags'          => null,
-                'skip_tags'     => null,
-                'created_by'    => $ownerId,
-                'created_at'    => $now,
-                'updated_at'    => $now,
+                'name'            => $tpl['name'],
+                'description'     => $tpl['description'],
+                'project_id'      => $projectId,
+                'inventory_id'    => $inventoryId,
+                'credential_id'   => null,
+                'runner_group_id' => $runnerGroupId,
+                'playbook'        => $tpl['playbook'],
+                'extra_vars'      => null,
+                'verbosity'       => $tpl['verbosity'],
+                'forks'           => 5,
+                'become'          => $tpl['become'],
+                'become_method'   => 'sudo',
+                'become_user'     => 'root',
+                'limit'           => null,
+                'tags'            => null,
+                'skip_tags'       => null,
+                'created_by'      => $ownerId,
+                'created_at'      => $now,
+                'updated_at'      => $now,
             ]);
         }
 
@@ -172,6 +174,14 @@ class m000035_000000_seed_demo_project extends Migration
 
         echo "    > Demo project, inventory, and " . count($templates) . " job templates created.\n";
         echo "    > Sync job queued — project will be cloned when the queue worker runs.\n";
+    }
+
+    private function defaultRunnerGroupId(): ?int
+    {
+        $id = $this->db->createCommand(
+            "SELECT id FROM {{%runner_group}} WHERE name = 'default' LIMIT 1"
+        )->queryScalar();
+        return $id !== false ? (int)$id : null;
     }
 
     public function safeDown(): void

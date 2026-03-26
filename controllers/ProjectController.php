@@ -59,12 +59,33 @@ class ProjectController extends BaseController
         }
         $playbooks = [];
         $tree      = [];
-        $localPath = $this->resolveLocalPath($model->local_path);
+        $localPath = $this->resolveEffectivePath($model);
         if ($localPath !== null) {
             $playbooks = $this->detectPlaybooks($localPath);
             $tree      = $this->buildTree($localPath, $localPath, 0, 3);
         }
         return $this->render('view', ['model' => $model, 'playbooks' => $playbooks, 'tree' => $tree]);
+    }
+
+    /**
+     * Resolve the effective local filesystem path for a project.
+     *
+     * For git projects, always derive the path from ProjectService (authoritative)
+     * rather than relying on the stored local_path field, which may be null on
+     * a project that has not been synced yet or stale on a moved installation.
+     *
+     * For manual projects, fall back to the stored local_path.
+     */
+    private function resolveEffectivePath(Project $model): ?string
+    {
+        if ($model->scm_type === Project::SCM_TYPE_GIT) {
+            /** @var ProjectService $svc */
+            $svc  = \Yii::$app->get('projectService');
+            $path = $svc->localPath($model);
+            return is_dir($path) ? $path : null;
+        }
+
+        return $this->resolveLocalPath($model->local_path);
     }
 
     /**
