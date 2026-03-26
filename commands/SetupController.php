@@ -65,6 +65,41 @@ class SetupController extends Controller
         );
 
         $this->stdout("Admin user '{$username}' created with ID {$user->id}.\n");
+
+        $this->applyDeferredSeeds();
+
         return ExitCode::OK;
+    }
+
+    /**
+     * Seed migrations that require a user to exist are skipped during the
+     * initial container startup (no users yet). Re-mark them as pending and
+     * re-run migrate so they execute now that the first admin user exists.
+     */
+    private function applyDeferredSeeds(): void
+    {
+        $seedMigrations = [
+            'm000020_000000_seed_selftest_template',
+            'm000035_000000_seed_demo_project',
+        ];
+
+        $db = \Yii::$app->db;
+
+        // Only reset migrations that were previously skipped (i.e. exist in the
+        // applied table but produced no data because no user existed at the time).
+        foreach ($seedMigrations as $version) {
+            $applied = (int) $db->createCommand(
+                'SELECT COUNT(*) FROM {{%migration}} WHERE version = :v',
+                [':v' => $version]
+            )->queryScalar();
+
+            if ($applied > 0) {
+                $db->createCommand()->delete('{{%migration}}', ['version' => $version])->execute();
+                $this->stdout("Deferred seed reset: {$version}\n");
+            }
+        }
+
+        $this->stdout("Running deferred seed migrations...\n");
+        \Yii::$app->runAction('migrate/up', ['interactive' => 0]);
     }
 }
